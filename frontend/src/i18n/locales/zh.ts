@@ -2839,7 +2839,7 @@ export default {
       down: '跌',
       stable: '稳定',
       siteBoardTitle: '按站点总览',
-      siteBoardHint: '每个站点一个色块，站点内再按厂商与套餐分组；套餐色块用于区分档位。',
+      siteBoardHint: '按站点分组的列表：站点为一级标题（同色系背景），下面列出各分组当前倍率；变化的分组涨红跌绿高亮。',
       groupsUnit: '个分组',
       totalGroups: '分组数',
       latestChange: '最近变化',

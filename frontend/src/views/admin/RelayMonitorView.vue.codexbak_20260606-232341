@@ -32,68 +32,111 @@
         </button>
       </div>
 
-      <!-- 统一筛选 -->
-      <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
-        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <!-- ============ 倍率总览（默认） ============ -->
+      <div v-show="activeTab === 'overview'" class="space-y-4">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+          <select
+            v-model="planFilter"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white md:w-44"
+          >
+            <option value="">{{ t('admin.relayMonitor.allPlans') }}</option>
+            <option v-for="p in planFilterOptions" :key="p" :value="p">{{ planTier(p).label }}</option>
+          </select>
           <input
             v-model="searchQuery"
             type="text"
             :placeholder="t('admin.relayMonitor.searchPlaceholder')"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white xl:col-span-2"
+            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
             @keyup.enter="reloadChanges"
           />
-          <select
-            v-model="siteFilter"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
-            @change="reloadChanges"
+          <button
+            class="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+            :disabled="probingAll"
+            @click="probeAll"
           >
-            <option value="">{{ t('admin.relayMonitor.allSites') }}</option>
-            <option v-for="site in siteFilterOptions" :key="site" :value="site">{{ site }}</option>
-          </select>
-          <select
-            v-model="vendorFilter"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
-            @change="reloadChanges"
-          >
-            <option value="">{{ t('admin.relayMonitor.allVendors') }}</option>
-            <option v-for="vendor in vendorFilterOptions" :key="vendor" :value="vendor">{{ vendor }}</option>
-          </select>
-          <select
-            v-model="systemFilter"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
-            @change="reloadChanges"
-          >
-            <option value="">{{ t('admin.relayMonitor.allSystems') }}</option>
-            <option v-for="system in systemFilterOptions" :key="system" :value="system">{{ system }}</option>
-          </select>
-          <select
-            v-model="planFilter"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
-            @change="reloadChanges"
-          >
-            <option value="">{{ t('admin.relayMonitor.allPlans') }}</option>
-            <option v-for="p in availablePlanFilters" :key="p.key" :value="p.key">{{ p.label }}</option>
-          </select>
+            {{ probingAll ? t('admin.relayMonitor.probing') : t('admin.relayMonitor.probeAll') }}
+          </button>
         </div>
-        <div class="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <select
-            v-if="activeTab === 'changes'"
-            v-model="directionFilter"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white md:w-48"
-            @change="reloadChanges"
-          >
-            <option value="">{{ t('admin.relayMonitor.allAnnouncements') }}</option>
-            <option value="up">{{ t('admin.relayMonitor.onlyUp') }}</option>
-            <option value="down">{{ t('admin.relayMonitor.onlyDown') }}</option>
-          </select>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.filterHint') }}</p>
-          <div class="flex gap-2">
-            <button
-              class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-dark-600 dark:text-gray-200 dark:hover:bg-dark-700"
-              @click="clearFilters"
+
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-800">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-dark-700 dark:text-gray-400">
+                <th class="px-4 py-3 font-medium">#</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSite') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSystem') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colVendor') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colPlan') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, idx) in filteredOverview"
+                :key="row.monitor_id + '/' + row.group_name"
+                class="border-b border-gray-100 last:border-0 dark:border-dark-700/60"
+                :class="row.has_change ? (row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10') : ''"
+              >
+                <td class="px-4 py-3 text-gray-500">{{ idx + 1 }}</td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.site }}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
+                </td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.vendor || '-' }}</td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.group_name }}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
+                </td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
+                <td class="px-4 py-3 font-medium">
+                  <span
+                    v-if="row.has_change"
+                    :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
+                  >
+                    {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
+                  </span>
+                  <span v-else class="text-gray-400">{{ t('admin.relayMonitor.noChange') }}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
+              </tr>
+              <tr v-if="!overviewLoading && filteredOverview.length === 0">
+                <td colspan="9" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noOverview') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ============ 公告看板 ============ -->
+      <div v-show="activeTab === 'changes'" class="space-y-4">
+        <!-- 筛选 -->
+        <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-dark-700 dark:bg-dark-800">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.relayMonitor.filterTitle') }}</h2>
+          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+            <span class="text-red-500">{{ t('admin.relayMonitor.legendUp') }}</span>
+            {{ t('admin.relayMonitor.legendSep') }}
+            <span class="text-green-500">{{ t('admin.relayMonitor.legendDown') }}</span>
+          </p>
+          <div class="mt-3 flex flex-col gap-3 md:flex-row md:items-center">
+            <select
+              v-model="directionFilter"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white md:w-48"
+              @change="reloadChanges"
             >
-              {{ t('admin.relayMonitor.clearFilters') }}
-            </button>
+              <option value="">{{ t('admin.relayMonitor.allAnnouncements') }}</option>
+              <option value="up">{{ t('admin.relayMonitor.onlyUp') }}</option>
+              <option value="down">{{ t('admin.relayMonitor.onlyDown') }}</option>
+            </select>
+            <input
+              v-model="searchQuery"
+              type="text"
+              :placeholder="t('admin.relayMonitor.searchPlaceholder')"
+              class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
+              @keyup.enter="reloadChanges"
+            />
             <button
               class="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
               :disabled="probingAll"
@@ -102,100 +145,6 @@
               {{ probingAll ? t('admin.relayMonitor.probing') : t('admin.relayMonitor.probeAll') }}
             </button>
           </div>
-        </div>
-      </div>
-
-      <!-- ============ 倍率总览（默认） ============ -->
-      <div v-show="activeTab === 'overview'" class="space-y-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.relayMonitor.siteBoardTitle') }}</h2>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.siteBoardHint') }}</p>
-          </div>
-          <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-300">
-            {{ filteredOverview.length }} {{ t('admin.relayMonitor.groupsUnit') }}
-          </span>
-        </div>
-
-        <div v-if="overviewSites.length" class="overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-700">
-          <table class="min-w-full text-sm">
-            <thead>
-              <tr class="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500 dark:border-dark-700 dark:bg-dark-800 dark:text-gray-400">
-                <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colPlan') }}</th>
-                <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
-                <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
-                <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
-                <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
-              </tr>
-            </thead>
-            <tbody
-              v-for="(site, siteIndex) in overviewSites"
-              :key="site.key"
-              class="border-b-4 border-white dark:border-dark-900"
-            >
-              <!-- 站点一级标题行 -->
-              <tr :class="siteTone(siteIndex).header">
-                <td colspan="5" class="px-4 py-2.5">
-                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span class="text-base font-bold text-gray-900 dark:text-white">{{ site.site }}</span>
-                    <span class="rounded bg-white/70 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.system }}</span>
-                    <span class="rounded bg-white/70 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.vendor || t('admin.relayMonitor.noVendor') }}</span>
-                    <span class="ml-auto flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
-                      <span>{{ site.rows.length }} {{ t('admin.relayMonitor.groupsUnit') }}</span>
-                      <span class="text-red-600 dark:text-red-400">{{ t('admin.relayMonitor.up') }} {{ site.upCount }}</span>
-                      <span class="text-green-600 dark:text-green-400">{{ t('admin.relayMonitor.down') }} {{ site.downCount }}</span>
-                      <span>{{ t('admin.relayMonitor.latestChange') }}: {{ site.lastChangedAt ? formatTime(site.lastChangedAt) : t('admin.relayMonitor.noChange') }}</span>
-                    </span>
-                  </div>
-                </td>
-              </tr>
-              <!-- 分组行 -->
-              <tr
-                v-for="row in site.rows"
-                :key="row.monitor_id + '/' + row.group_name"
-                class="border-b border-gray-100 last:border-0 dark:border-dark-700/50"
-                :class="row.has_change
-                  ? (row.direction === 'up' ? 'bg-red-50/70 dark:bg-red-950/15' : 'bg-green-50/70 dark:bg-green-950/15')
-                  : siteTone(siteIndex).row"
-              >
-                <td class="px-4 py-2.5">
-                  <div class="flex items-center gap-1.5">
-                    <span class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-700 dark:text-gray-300">{{ row.vendor || t('admin.relayMonitor.noVendor') }}</span>
-                    <span class="rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
-                  </div>
-                </td>
-                <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ row.group_name }}</td>
-                <td class="px-4 py-2.5 font-semibold text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
-                <td class="px-4 py-2.5">
-                  <span
-                    v-if="row.has_change"
-                    class="font-medium"
-                    :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
-                  >
-                    {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
-                    <span class="ml-1 font-normal text-gray-400">({{ formatRate(row.old_rate) }} → {{ formatRate(row.new_rate) }})</span>
-                  </span>
-                  <span v-else class="text-gray-400">{{ t('admin.relayMonitor.stable') }}</span>
-                </td>
-                <td class="px-4 py-2.5 whitespace-nowrap text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div v-else-if="!overviewLoading" class="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-gray-400 dark:border-dark-600 dark:bg-dark-800">
-          {{ t('admin.relayMonitor.noOverview') }}
-        </div>
-      </div>
-
-      <!-- ============ 公告看板 ============ -->
-      <div v-show="activeTab === 'changes'" class="space-y-4">
-        <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
-          <p class="text-xs text-gray-500 dark:text-gray-400">
-            <span class="text-red-500">{{ t('admin.relayMonitor.legendUp') }}</span>
-            {{ t('admin.relayMonitor.legendSep') }}
-            <span class="text-green-500">{{ t('admin.relayMonitor.legendDown') }}</span>
-          </p>
         </div>
 
         <!-- 历史表格 -->
@@ -219,7 +168,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="(row, idx) in filteredChanges"
+                v-for="(row, idx) in changes"
                 :key="row.id"
                 class="border-b border-gray-100 last:border-0 dark:border-dark-700/60"
                 :class="row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10'"
@@ -252,7 +201,7 @@
                 <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ formatTime(row.detected_at) }}</td>
                 <td class="px-4 py-3 max-w-xs truncate text-gray-500" :title="row.content">{{ row.content }}</td>
               </tr>
-              <tr v-if="!changesLoading && filteredChanges.length === 0">
+              <tr v-if="!changesLoading && changes.length === 0">
                 <td colspan="12" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noChanges') }}</td>
               </tr>
             </tbody>
@@ -471,9 +420,6 @@ const changesPageSize = ref(20)
 const changesLoading = ref(false)
 const directionFilter = ref<'' | RateDirection>('')
 const searchQuery = ref('')
-const siteFilter = ref('')
-const vendorFilter = ref('')
-const systemFilter = ref<'' | RelaySystem>('')
 const probingAll = ref(false)
 
 // ---- 站点 ----
@@ -510,165 +456,27 @@ interface PlanTier {
   key: string
   label: string
   cls: string
-  panelCls: string
-  borderCls: string
 }
-interface OverviewSite {
-  key: string
-  site: string
-  system: RelaySystem
-  vendor: string
-  rows: RelayOverviewRow[]
-  upCount: number
-  downCount: number
-  lastChangedAt: string | null
-}
-
-interface SiteTone {
-  header: string
-  row: string
-}
-
-const PLAN_OTHER: PlanTier = {
-  key: 'other',
-  label: 'Other',
-  cls: 'bg-gray-100 text-gray-600 dark:bg-dark-700 dark:text-gray-300',
-  panelCls: 'bg-gray-50 dark:bg-dark-800/80',
-  borderCls: 'border-gray-200 dark:border-dark-700',
-}
+const PLAN_OTHER: PlanTier = { key: 'other', label: '—', cls: 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-gray-400' }
 function planTier(group: string): PlanTier {
   const g = (group || '').toLowerCase()
-  if (g.includes('team')) return { key: 'team', label: 'Team', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', panelCls: 'bg-purple-50/80 dark:bg-purple-950/20', borderCls: 'border-purple-100 dark:border-purple-900/40' }
-  if (g.includes('enterprise') || /\bent\b/.test(g)) return { key: 'enterprise', label: 'Enterprise', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', panelCls: 'bg-slate-50 dark:bg-slate-900/30', borderCls: 'border-slate-200 dark:border-slate-700' }
-  if (g.includes('max')) return { key: 'max', label: 'Max', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', panelCls: 'bg-orange-50/80 dark:bg-orange-950/20', borderCls: 'border-orange-100 dark:border-orange-900/40' }
-  if (g.includes('ultra')) return { key: 'ultra', label: 'Ultra', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300', panelCls: 'bg-amber-50/80 dark:bg-amber-950/20', borderCls: 'border-amber-100 dark:border-amber-900/40' }
-  if (/\bpro\b/.test(g) || g.includes('pro')) return { key: 'pro', label: 'Pro', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300', panelCls: 'bg-blue-50/80 dark:bg-blue-950/20', borderCls: 'border-blue-100 dark:border-blue-900/40' }
-  if (g.includes('plus')) return { key: 'plus', label: 'Plus', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300', panelCls: 'bg-teal-50/80 dark:bg-teal-950/20', borderCls: 'border-teal-100 dark:border-teal-900/40' }
-  if (g.includes('free')) return { key: 'free', label: 'Free', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', panelCls: 'bg-green-50/80 dark:bg-green-950/20', borderCls: 'border-green-100 dark:border-green-900/40' }
+  if (g.includes('team')) return { key: 'team', label: 'Team', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }
+  if (g.includes('enterprise') || /\bent\b/.test(g)) return { key: 'enterprise', label: 'Enterprise', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200' }
+  if (g.includes('max')) return { key: 'max', label: 'Max', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' }
+  if (g.includes('ultra')) return { key: 'ultra', label: 'Ultra', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }
+  if (/\bpro\b/.test(g) || g.includes('pro')) return { key: 'pro', label: 'Pro', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }
+  if (g.includes('plus')) return { key: 'plus', label: 'Plus', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' }
+  if (g.includes('free')) return { key: 'free', label: 'Free', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' }
   return PLAN_OTHER
 }
 
-// 每个站点一个色系：标题行用较深的 header 背景，分组行用同色系的浅 row 背景，
-// 相邻站点颜色不同，便于区分「哪些分组属于哪个站点」。
-const SITE_TONES: SiteTone[] = [
-  { header: 'bg-sky-100 dark:bg-sky-900/40', row: 'bg-sky-50/50 dark:bg-sky-950/15' },
-  { header: 'bg-violet-100 dark:bg-violet-900/40', row: 'bg-violet-50/50 dark:bg-violet-950/15' },
-  { header: 'bg-emerald-100 dark:bg-emerald-900/40', row: 'bg-emerald-50/50 dark:bg-emerald-950/15' },
-  { header: 'bg-amber-100 dark:bg-amber-900/40', row: 'bg-amber-50/50 dark:bg-amber-950/15' },
-  { header: 'bg-rose-100 dark:bg-rose-900/40', row: 'bg-rose-50/50 dark:bg-rose-950/15' },
-  { header: 'bg-cyan-100 dark:bg-cyan-900/40', row: 'bg-cyan-50/50 dark:bg-cyan-950/15' },
-]
-
-function siteTone(index: number): SiteTone {
-  return SITE_TONES[index % SITE_TONES.length]
-}
-
-function normalizeVendor(vendor: string): string {
-  const v = vendor.trim()
-  return v || t('admin.relayMonitor.noVendor')
-}
-
-// 套餐筛选（客户端过滤；overview 返回全量无分页）。
+// 套餐筛选（总览页客户端过滤；overview 返回全量无分页）。
 const planFilter = ref('')
+const planFilterOptions = ['team', 'enterprise', 'max', 'ultra', 'pro', 'plus', 'free']
 const filteredOverview = computed(() => {
-  return overview.value.filter((r) => matchesClientFilters(r))
+  if (!planFilter.value) return overview.value
+  return overview.value.filter((r) => planTier(r.group_name).key === planFilter.value)
 })
-
-const filteredChanges = computed(() => changes.value.filter((r) => matchesClientFilters(r)))
-
-const siteFilterOptions = computed(() => uniqueSorted([
-  ...overview.value.map((r) => r.site),
-  ...changes.value.map((r) => r.site),
-  ...monitors.value.map((m) => m.name),
-]))
-
-const vendorFilterOptions = computed(() => uniqueSorted([
-  ...overview.value.map((r) => normalizeVendor(r.vendor)),
-  ...changes.value.map((r) => normalizeVendor(r.vendor)),
-  ...monitors.value.map((m) => normalizeVendor(m.vendor)),
-]))
-
-const systemFilterOptions = computed(() => uniqueSorted([
-  ...overview.value.map((r) => r.system),
-  ...changes.value.map((r) => r.system),
-  ...monitors.value.map((m) => m.system),
-]) as RelaySystem[])
-
-const availablePlanFilters = computed(() => {
-  const seen = new Set<string>()
-  const out: PlanTier[] = []
-  for (const row of [...overview.value, ...changes.value]) {
-    const tier = planTier(row.group_name)
-    if (!seen.has(tier.key)) {
-      seen.add(tier.key)
-      out.push(tier)
-    }
-  }
-  return out
-})
-
-const overviewSites = computed<OverviewSite[]>(() => {
-  const siteMap = new Map<string, RelayOverviewRow[]>()
-  for (const row of filteredOverview.value) {
-    const key = `${row.monitor_id}:${row.site}`
-    const rows = siteMap.get(key) ?? []
-    rows.push(row)
-    siteMap.set(key, rows)
-  }
-
-  return Array.from(siteMap.entries()).map(([key, rows]) => {
-    const first = rows[0]
-    const sortedRows = [...rows].sort(compareOverviewRows)
-    return {
-      key,
-      site: first.site,
-      system: first.system,
-      vendor: first.vendor,
-      rows: sortedRows,
-      upCount: rows.filter((r) => r.has_change && r.direction === 'up').length,
-      downCount: rows.filter((r) => r.has_change && r.direction === 'down').length,
-      lastChangedAt: newestChangedAt(rows),
-    }
-  })
-})
-
-function matchesClientFilters(row: RelayOverviewRow | RelayRateChange): boolean {
-  if (siteFilter.value && row.site !== siteFilter.value) return false
-  if (vendorFilter.value && normalizeVendor(row.vendor) !== vendorFilter.value) return false
-  if (systemFilter.value && row.system !== systemFilter.value) return false
-  if (planFilter.value && planTier(row.group_name).key !== planFilter.value) return false
-  return true
-}
-
-function clearFilters() {
-  searchQuery.value = ''
-  siteFilter.value = ''
-  vendorFilter.value = ''
-  systemFilter.value = ''
-  planFilter.value = ''
-  directionFilter.value = ''
-  reloadChanges()
-}
-
-function uniqueSorted(values: string[]): string[] {
-  return Array.from(new Set(values.map((v) => v.trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b))
-}
-
-function compareOverviewRows(a: RelayOverviewRow, b: RelayOverviewRow): number {
-  if (a.has_change !== b.has_change) return a.has_change ? -1 : 1
-  const vendorCmp = normalizeVendor(a.vendor).localeCompare(normalizeVendor(b.vendor))
-  if (vendorCmp !== 0) return vendorCmp
-  const planCmp = planTier(a.group_name).label.localeCompare(planTier(b.group_name).label)
-  if (planCmp !== 0) return planCmp
-  return a.group_name.localeCompare(b.group_name)
-}
-
-function newestChangedAt(rows: RelayOverviewRow[]): string | null {
-  return rows
-    .map((r) => r.changed_at)
-    .filter((v): v is string => Boolean(v))
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null
-}
 
 function formatRate(r: number): string {
   if (r === null || r === undefined || Number.isNaN(r)) return '-'

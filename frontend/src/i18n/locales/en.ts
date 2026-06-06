@@ -2762,7 +2762,7 @@ export default {
       down: 'Down',
       stable: 'Stable',
       siteBoardTitle: 'Site Overview',
-      siteBoardHint: 'Each site has its own background. Vendor + plan sections use separate plan colors.',
+      siteBoardHint: 'Grouped by site: site as a colored header row, group rates listed underneath; changed groups highlighted red/green.',
       groupsUnit: 'groups',
       totalGroups: 'Groups',
       latestChange: 'Latest change',

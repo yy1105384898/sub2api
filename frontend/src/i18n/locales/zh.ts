@@ -2837,6 +2837,8 @@ export default {
       colSystem: '系统',
       colVendor: '厂商',
       colGroup: '分组',
+      colPlan: '套餐',
+      allPlans: '全部套餐',
       colOldRate: '原倍率',
       colNewRate: '当前倍率',
       colCurrentRate: '当前倍率',

@@ -35,6 +35,13 @@
       <!-- ============ 倍率总览（默认） ============ -->
       <div v-show="activeTab === 'overview'" class="space-y-4">
         <div class="flex flex-col gap-3 md:flex-row md:items-center">
+          <select
+            v-model="planFilter"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white md:w-44"
+          >
+            <option value="">{{ t('admin.relayMonitor.allPlans') }}</option>
+            <option v-for="p in planFilterOptions" :key="p" :value="p">{{ planTier(p).label }}</option>
+          </select>
           <input
             v-model="searchQuery"
             type="text"
@@ -60,6 +67,7 @@
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSystem') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colVendor') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colPlan') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
@@ -67,7 +75,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="(row, idx) in overview"
+                v-for="(row, idx) in filteredOverview"
                 :key="row.monitor_id + '/' + row.group_name"
                 class="border-b border-gray-100 last:border-0 dark:border-dark-700/60"
                 :class="row.has_change ? (row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10') : ''"
@@ -79,6 +87,9 @@
                 </td>
                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.vendor || '-' }}</td>
                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.group_name }}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
+                </td>
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
                 <td class="px-4 py-3 font-medium">
                   <span
@@ -91,8 +102,8 @@
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
               </tr>
-              <tr v-if="!overviewLoading && overview.length === 0">
-                <td colspan="8" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noOverview') }}</td>
+              <tr v-if="!overviewLoading && filteredOverview.length === 0">
+                <td colspan="9" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noOverview') }}</td>
               </tr>
             </tbody>
           </table>
@@ -147,6 +158,7 @@
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSystem') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colVendor') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colPlan') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colOldRate') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colNewRate') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
@@ -178,6 +190,9 @@
                 </td>
                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.vendor || '-' }}</td>
                 <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.group_name }}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
+                </td>
                 <td class="px-4 py-3 text-gray-500">{{ formatRate(row.old_rate) }}</td>
                 <td class="px-4 py-3 text-gray-700 dark:text-gray-200">{{ formatRate(row.new_rate) }}</td>
                 <td class="px-4 py-3 font-medium" :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
@@ -187,7 +202,7 @@
                 <td class="px-4 py-3 max-w-xs truncate text-gray-500" :title="row.content">{{ row.content }}</td>
               </tr>
               <tr v-if="!changesLoading && changes.length === 0">
-                <td colspan="11" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noChanges') }}</td>
+                <td colspan="12" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noChanges') }}</td>
               </tr>
             </tbody>
           </table>
@@ -284,7 +299,10 @@
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.relayMonitor.colVendor') }}</label>
-            <input v-model="form.vendor" type="text" placeholder="OpenAI" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+            <input v-model="form.vendor" list="relay-vendor-options" type="text" placeholder="OpenAI" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+            <datalist id="relay-vendor-options">
+              <option v-for="v in vendorOptions" :key="v" :value="v" />
+            </datalist>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.relayMonitor.colInterval') }} (s)</label>
@@ -427,6 +445,37 @@ const form = reactive({
   watched_groups: [] as string[],
   interval_seconds: 300,
   enabled: true,
+})
+
+// 厂商下拉候选（datalist，仍可自定义输入）。
+const vendorOptions = ['OpenAI', 'Claude', 'Gemini', 'Grok', 'DeepSeek']
+
+// 套餐档位：按分组名关键字识别（覆盖 OpenAI/Claude/Gemini/Grok 各家）。
+// 顺序由具体到一般：team→enterprise→max→ultra→pro→plus→free。
+interface PlanTier {
+  key: string
+  label: string
+  cls: string
+}
+const PLAN_OTHER: PlanTier = { key: 'other', label: '—', cls: 'bg-gray-100 text-gray-500 dark:bg-dark-700 dark:text-gray-400' }
+function planTier(group: string): PlanTier {
+  const g = (group || '').toLowerCase()
+  if (g.includes('team')) return { key: 'team', label: 'Team', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' }
+  if (g.includes('enterprise') || /\bent\b/.test(g)) return { key: 'enterprise', label: 'Enterprise', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200' }
+  if (g.includes('max')) return { key: 'max', label: 'Max', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' }
+  if (g.includes('ultra')) return { key: 'ultra', label: 'Ultra', cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' }
+  if (/\bpro\b/.test(g) || g.includes('pro')) return { key: 'pro', label: 'Pro', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' }
+  if (g.includes('plus')) return { key: 'plus', label: 'Plus', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' }
+  if (g.includes('free')) return { key: 'free', label: 'Free', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' }
+  return PLAN_OTHER
+}
+
+// 套餐筛选（总览页客户端过滤；overview 返回全量无分页）。
+const planFilter = ref('')
+const planFilterOptions = ['team', 'enterprise', 'max', 'ultra', 'pro', 'plus', 'free']
+const filteredOverview = computed(() => {
+  if (!planFilter.value) return overview.value
+  return overview.value.filter((r) => planTier(r.group_name).key === planFilter.value)
 })
 
 function formatRate(r: number): string {

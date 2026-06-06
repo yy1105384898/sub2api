@@ -2760,6 +2760,8 @@ export default {
       colSystem: 'System',
       colVendor: 'Vendor',
       colGroup: 'Group',
+      colPlan: 'Plan',
+      allPlans: 'All Plans',
       colOldRate: 'Old Rate',
       colNewRate: 'Current Rate',
       colCurrentRate: 'Current Rate',

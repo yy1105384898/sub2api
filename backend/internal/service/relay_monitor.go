@@ -174,6 +174,24 @@ type RelayChangeSummary struct {
 	DownCount int64 `json:"down_count"`
 }
 
+// RelayGroupOverview 倍率总览的一行：某监控某被跟踪分组的当前倍率，
+// 以及该分组最近一次变化（若有）。默认视图据此展示所有分组当前倍率，
+// 变化过的附带涨跌幅并排在前面。
+type RelayGroupOverview struct {
+	MonitorID   int64      `json:"monitor_id"`
+	Site        string     `json:"site"`
+	System      string     `json:"system"`
+	Vendor      string     `json:"vendor"`
+	GroupName   string     `json:"group_name"`
+	CurrentRate float64    `json:"current_rate"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	HasChange   bool       `json:"has_change"`
+	OldRate     float64    `json:"old_rate"`
+	NewRate     float64    `json:"new_rate"`
+	Direction   string     `json:"direction"`
+	ChangedAt   *time.Time `json:"changed_at"`
+}
+
 // RelayMonitorRepository 中转站监控数据访问接口。
 // repository 实现负责与 ent 模型互转，并保持 credential 字段为密文。
 type RelayMonitorRepository interface {
@@ -192,6 +210,9 @@ type RelayMonitorRepository interface {
 	ListSnapshots(ctx context.Context, monitorID int64) ([]*RelayRateSnapshot, error)
 	UpsertSnapshot(ctx context.Context, monitorID int64, group string, rate float64, at time.Time) error
 	DeleteSnapshotsNotIn(ctx context.Context, monitorID int64, groups []string) error
+	// ListOverview 返回所有被跟踪分组的当前倍率 + 最近一次变化（若有），
+	// 变化过的排在前面（按变化时间倒序）。search 模糊匹配 site/vendor/group。
+	ListOverview(ctx context.Context, search string) ([]*RelayGroupOverview, error)
 
 	// 变化历史
 	InsertChanges(ctx context.Context, rows []*RelayRateChange) error

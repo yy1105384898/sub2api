@@ -637,6 +637,7 @@ func registerRelayMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	{
 		// 静态段路由放在 :id 之前，gin 会优先匹配静态段。
 		monitors.GET("/changes", h.Admin.RelayMonitor.Changes)
+		monitors.GET("/overview", h.Admin.RelayMonitor.Overview)
 		monitors.GET("/summary", h.Admin.RelayMonitor.Summary)
 		monitors.POST("/probe-all", h.Admin.RelayMonitor.ProbeAll)
 		monitors.POST("/fetch-groups", h.Admin.RelayMonitor.FetchGroups)

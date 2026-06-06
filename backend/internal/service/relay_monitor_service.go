@@ -244,6 +244,11 @@ func (s *RelayMonitorService) Summary(ctx context.Context, search string) (Relay
 	return s.repo.SummarizeChanges(ctx, RelayRateChangeListParams{Search: strings.TrimSpace(search)})
 }
 
+// Overview 倍率总览：所有被跟踪分组的当前倍率，变化过的附带涨跌并排在前面。
+func (s *RelayMonitorService) Overview(ctx context.Context, search string) ([]*RelayGroupOverview, error) {
+	return s.repo.ListOverview(ctx, strings.TrimSpace(search))
+}
+
 // ---------- 探测 ----------
 
 // FetchGroups 用给定配置（或已存在监控的凭证）抓取目标站全部分组+当前倍率，不落库。

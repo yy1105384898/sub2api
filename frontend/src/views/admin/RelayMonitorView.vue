@@ -32,6 +32,73 @@
         </button>
       </div>
 
+      <!-- ============ 倍率总览（默认） ============ -->
+      <div v-show="activeTab === 'overview'" class="space-y-4">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="t('admin.relayMonitor.searchPlaceholder')"
+            class="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
+            @keyup.enter="reloadChanges"
+          />
+          <button
+            class="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-60"
+            :disabled="probingAll"
+            @click="probeAll"
+          >
+            {{ probingAll ? t('admin.relayMonitor.probing') : t('admin.relayMonitor.probeAll') }}
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-dark-700 dark:bg-dark-800">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-dark-700 dark:text-gray-400">
+                <th class="px-4 py-3 font-medium">#</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSite') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colSystem') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colVendor') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
+                <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="(row, idx) in overview"
+                :key="row.monitor_id + '/' + row.group_name"
+                class="border-b border-gray-100 last:border-0 dark:border-dark-700/60"
+                :class="row.has_change ? (row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10') : ''"
+              >
+                <td class="px-4 py-3 text-gray-500">{{ idx + 1 }}</td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.site }}</td>
+                <td class="px-4 py-3">
+                  <span class="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
+                </td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.vendor || '-' }}</td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ row.group_name }}</td>
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
+                <td class="px-4 py-3 font-medium">
+                  <span
+                    v-if="row.has_change"
+                    :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
+                  >
+                    {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
+                  </span>
+                  <span v-else class="text-gray-400">{{ t('admin.relayMonitor.noChange') }}</span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
+              </tr>
+              <tr v-if="!overviewLoading && overview.length === 0">
+                <td colspan="8" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noOverview') }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- ============ 公告看板 ============ -->
       <div v-show="activeTab === 'changes'" class="space-y-4">
         <!-- 筛选 -->
@@ -302,6 +369,7 @@ import { relayMonitorAPI } from '@/api/admin/relayMonitor'
 import type {
   RelayMonitor,
   RelayRateChange,
+  RelayOverviewRow,
   RelayGroupRate,
   RelaySystem,
   RateDirection,
@@ -311,15 +379,20 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const tabs = computed(() => [
+  { key: 'overview' as const, label: t('admin.relayMonitor.tabOverview') },
   { key: 'changes' as const, label: t('admin.relayMonitor.tabChanges') },
   { key: 'sites' as const, label: t('admin.relayMonitor.tabSites') },
 ])
-const activeTab = ref<'changes' | 'sites'>('changes')
+const activeTab = ref<'overview' | 'changes' | 'sites'>('overview')
 
 // ---- 汇总 ----
 const summary = ref({ up_count: 0, down_count: 0 })
 const lastRefresh = ref<string>('')
 const lastRefreshLabel = computed(() => (lastRefresh.value ? formatTime(lastRefresh.value) : '-'))
+
+// ---- 倍率总览 ----
+const overview = ref<RelayOverviewRow[]>([])
+const overviewLoading = ref(false)
 
 // ---- 公告历史 ----
 const changes = ref<RelayRateChange[]>([])
@@ -369,6 +442,17 @@ function formatTime(s: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
+async function loadOverview() {
+  overviewLoading.value = true
+  try {
+    overview.value = await relayMonitorAPI.overview(searchQuery.value.trim() || undefined)
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('admin.relayMonitor.loadError')))
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
 async function loadSummary() {
   try {
     summary.value = await relayMonitorAPI.summary(searchQuery.value.trim() || undefined)
@@ -381,6 +465,7 @@ async function reloadChanges() {
   changesPage.value = 1
   await loadChanges()
   await loadSummary()
+  await loadOverview()
 }
 
 async function loadChanges() {
@@ -435,6 +520,7 @@ async function probeAll() {
     lastRefresh.value = new Date().toISOString()
     await loadChanges()
     await loadSummary()
+    await loadOverview()
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t('admin.relayMonitor.probeFailed')))
   } finally {
@@ -448,7 +534,9 @@ async function probeOne(m: RelayMonitor) {
     const res = await relayMonitorAPI.probe(m.id)
     appStore.showSuccess(t('admin.relayMonitor.probeOneDone', { n: res.changes.length }))
     await loadMonitors()
-    if (activeTab.value === 'changes') await loadChanges()
+    await loadOverview()
+    await loadChanges()
+    await loadSummary()
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t('admin.relayMonitor.probeFailed')))
   } finally {
@@ -561,6 +649,7 @@ async function doDelete() {
 }
 
 onMounted(() => {
+  loadOverview()
   loadChanges()
   loadSummary()
   loadMonitors()

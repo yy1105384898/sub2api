@@ -57,6 +57,20 @@ export interface RelaySummary {
   down_count: number
 }
 
+export interface RelayOverviewRow {
+  monitor_id: number
+  site: string
+  system: RelaySystem
+  vendor: string
+  group_name: string
+  current_rate: number
+  has_change: boolean
+  old_rate: number
+  new_rate: number
+  direction: RateDirection | ''
+  changed_at: string | null
+}
+
 export interface ListParams {
   page?: number
   page_size?: number
@@ -197,6 +211,14 @@ export async function summary(search?: string): Promise<RelaySummary> {
   return data
 }
 
+/** Current rate of every watched group, changed ones first with delta. */
+export async function overview(search?: string): Promise<RelayOverviewRow[]> {
+  const { data } = await apiClient.get<RelayOverviewRow[]>('/admin/relay-monitors/overview', {
+    params: search ? { search } : {},
+  })
+  return data
+}
+
 export const relayMonitorAPI = {
   list,
   get,
@@ -208,6 +230,7 @@ export const relayMonitorAPI = {
   fetchGroups,
   listChanges,
   summary,
+  overview,
 }
 
 export default relayMonitorAPI

@@ -403,6 +403,51 @@ func (h *RelayMonitorHandler) Changes(c *gin.Context) {
 	response.Paginated(c, out, total, page, pageSize)
 }
 
+type relayOverviewResponse struct {
+	MonitorID   int64   `json:"monitor_id"`
+	Site        string  `json:"site"`
+	System      string  `json:"system"`
+	Vendor      string  `json:"vendor"`
+	GroupName   string  `json:"group_name"`
+	CurrentRate float64 `json:"current_rate"`
+	HasChange   bool    `json:"has_change"`
+	OldRate     float64 `json:"old_rate"`
+	NewRate     float64 `json:"new_rate"`
+	Direction   string  `json:"direction"`
+	ChangedAt   *string `json:"changed_at"`
+}
+
+// Overview GET /api/v1/admin/relay-monitors/overview
+// 倍率总览：所有被跟踪分组的当前倍率，变化过的附带涨跌并排在前面。
+func (h *RelayMonitorHandler) Overview(c *gin.Context) {
+	items, err := h.monitorService.Overview(c.Request.Context(), strings.TrimSpace(c.Query("search")))
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	out := make([]relayOverviewResponse, 0, len(items))
+	for _, o := range items {
+		row := relayOverviewResponse{
+			MonitorID:   o.MonitorID,
+			Site:        o.Site,
+			System:      o.System,
+			Vendor:      o.Vendor,
+			GroupName:   o.GroupName,
+			CurrentRate: o.CurrentRate,
+			HasChange:   o.HasChange,
+			OldRate:     o.OldRate,
+			NewRate:     o.NewRate,
+			Direction:   o.Direction,
+		}
+		if o.ChangedAt != nil {
+			s := o.ChangedAt.Format(time.RFC3339)
+			row.ChangedAt = &s
+		}
+		out = append(out, row)
+	}
+	response.Success(c, out)
+}
+
 // Summary GET /api/v1/admin/relay-monitors/summary
 // 顶部统计卡：涨/跌公告数量（受 search 过滤）。
 func (h *RelayMonitorHandler) Summary(c *gin.Context) {

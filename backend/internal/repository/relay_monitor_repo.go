@@ -206,6 +206,54 @@ func (r *relayMonitorRepository) DeleteSnapshotsNotIn(ctx context.Context, monit
 	return nil
 }
 
+// ListOverview 返回所有被跟踪分组的当前倍率 + 最近一次变化（LATERAL 取每组最近一条）。
+// 变化过的排前面（changed_at 倒序），其余按 site/group。search 模糊匹配 site/vendor/group。
+func (r *relayMonitorRepository) ListOverview(ctx context.Context, search string) ([]*service.RelayGroupOverview, error) {
+	const q = `
+		SELECT s.monitor_id, m.name AS site, m.system, m.vendor, s.group_name,
+		       s.rate AS current_rate, s.updated_at,
+		       c.old_rate, c.new_rate, c.direction, c.detected_at
+		FROM relay_rate_snapshots s
+		JOIN relay_monitors m ON m.id = s.monitor_id
+		LEFT JOIN LATERAL (
+		    SELECT old_rate, new_rate, direction, detected_at
+		    FROM relay_rate_changes rc
+		    WHERE rc.monitor_id = s.monitor_id AND rc.group_name = s.group_name
+		    ORDER BY rc.detected_at DESC, rc.id DESC
+		    LIMIT 1
+		) c ON TRUE
+		WHERE ($1 = '' OR m.name ILIKE '%'||$1||'%' OR m.vendor ILIKE '%'||$1||'%' OR s.group_name ILIKE '%'||$1||'%')
+		ORDER BY (c.detected_at IS NOT NULL) DESC, c.detected_at DESC NULLS LAST, m.name, s.group_name
+	`
+	rows, err := r.db.QueryContext(ctx, q, search)
+	if err != nil {
+		return nil, fmt.Errorf("list overview: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := make([]*service.RelayGroupOverview, 0)
+	for rows.Next() {
+		o := &service.RelayGroupOverview{}
+		var oldRate, newRate sql.NullFloat64
+		var direction sql.NullString
+		var changedAt sql.NullTime
+		if err := rows.Scan(&o.MonitorID, &o.Site, &o.System, &o.Vendor, &o.GroupName,
+			&o.CurrentRate, &o.UpdatedAt, &oldRate, &newRate, &direction, &changedAt); err != nil {
+			return nil, fmt.Errorf("scan overview row: %w", err)
+		}
+		if changedAt.Valid {
+			o.HasChange = true
+			o.OldRate = oldRate.Float64
+			o.NewRate = newRate.Float64
+			o.Direction = direction.String
+			t := changedAt.Time
+			o.ChangedAt = &t
+		}
+		out = append(out, o)
+	}
+	return out, rows.Err()
+}
+
 // ---------- 变化历史 ----------
 
 func (r *relayMonitorRepository) InsertChanges(ctx context.Context, rows []*service.RelayRateChange) error {

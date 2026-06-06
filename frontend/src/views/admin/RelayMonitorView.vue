@@ -1,19 +1,27 @@
 <template>
   <AppLayout>
     <div class="space-y-5">
-      <!-- 顶部统计卡 -->
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="rounded-xl border border-red-100 bg-red-50 p-5 dark:border-red-900/40 dark:bg-red-950/30">
-          <p class="text-sm font-medium text-red-600 dark:text-red-400">{{ t('admin.relayMonitor.upAnnouncements') }}</p>
-          <p class="mt-1 text-3xl font-bold text-red-600 dark:text-red-400">{{ summary.up_count }}</p>
+      <!-- 顶部 KPI 条 -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.kpiSites') }}</p>
+          <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ siteCount }}</p>
         </div>
-        <div class="rounded-xl border border-green-100 bg-green-50 p-5 dark:border-green-900/40 dark:bg-green-950/30">
-          <p class="text-sm font-medium text-green-600 dark:text-green-400">{{ t('admin.relayMonitor.downAnnouncements') }}</p>
-          <p class="mt-1 text-3xl font-bold text-green-600 dark:text-green-400">{{ summary.down_count }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-dark-700 dark:bg-dark-800">
+          <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.kpiGroups') }}</p>
+          <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ groupCount }}</p>
         </div>
-        <div class="rounded-xl border border-blue-100 bg-blue-50 p-5 dark:border-blue-900/40 dark:bg-blue-950/30">
-          <p class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ t('admin.relayMonitor.lastRefresh') }}</p>
-          <p class="mt-1 text-lg font-semibold text-blue-700 dark:text-blue-300">{{ lastRefreshLabel }}</p>
+        <div class="rounded-xl border border-red-100 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/30">
+          <p class="text-xs font-medium text-red-600 dark:text-red-400">{{ t('admin.relayMonitor.upAnnouncements') }}</p>
+          <p class="mt-1 text-2xl font-bold text-red-600 dark:text-red-400">{{ summary.up_count }}</p>
+        </div>
+        <div class="rounded-xl border border-green-100 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-950/30">
+          <p class="text-xs font-medium text-green-600 dark:text-green-400">{{ t('admin.relayMonitor.downAnnouncements') }}</p>
+          <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400">{{ summary.down_count }}</p>
+        </div>
+        <div class="col-span-2 rounded-xl border border-blue-100 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/30 md:col-span-3 xl:col-span-1">
+          <p class="text-xs font-medium text-blue-600 dark:text-blue-400">{{ t('admin.relayMonitor.lastRefresh') }}</p>
+          <p class="mt-1 text-sm font-semibold text-blue-700 dark:text-blue-300">{{ lastRefreshLabel }}</p>
         </div>
       </div>
 
@@ -102,6 +110,88 @@
               {{ probingAll ? t('admin.relayMonitor.probing') : t('admin.relayMonitor.probeAll') }}
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- ============ 比价（默认） ============ -->
+      <div v-show="activeTab === 'compare'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.relayMonitor.compareTitle') }}</h2>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.compareHint') }}</p>
+          </div>
+          <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-300">
+            {{ compareGroups.length }} {{ t('admin.relayMonitor.bucketsUnit') }}
+          </span>
+        </div>
+
+        <div v-if="compareGroups.length" class="space-y-3">
+          <section
+            v-for="g in compareGroups"
+            :key="g.key"
+            class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700"
+          >
+            <div class="flex flex-wrap items-center gap-2 bg-gray-50 px-4 py-2.5 dark:bg-dark-800">
+              <span class="rounded bg-white px-2 py-0.5 text-xs font-semibold text-gray-700 shadow-sm dark:bg-dark-900 dark:text-gray-200">{{ g.vendor }}</span>
+              <span class="rounded px-2 py-0.5 text-xs font-medium" :class="g.tier.cls">{{ g.tier.label }}</span>
+              <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ g.rows.length }} {{ t('admin.relayMonitor.quotesUnit') }}</span>
+            </div>
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-100 text-left text-[11px] text-gray-400 dark:border-dark-700/60">
+                  <th class="w-12 px-3 py-2 font-medium">#</th>
+                  <th class="px-3 py-2 font-medium">{{ t('admin.relayMonitor.colSite') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('admin.relayMonitor.colGroup') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
+                  <th class="px-3 py-2 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(row, i) in g.rows"
+                  :key="row.monitor_id + '/' + row.group_name"
+                  class="border-b border-gray-100 last:border-0 dark:border-dark-700/50"
+                  :class="i === 0 ? 'bg-emerald-50/70 dark:bg-emerald-950/20' : ''"
+                >
+                  <td class="px-3 py-2.5">
+                    <span v-if="i === 0" class="text-base" :title="t('admin.relayMonitor.cheapest')">🏆</span>
+                    <span v-else class="text-gray-400">{{ i + 1 }}</span>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <div class="flex items-center gap-1.5">
+                      <span class="font-medium text-gray-900 dark:text-white">{{ row.site }}</span>
+                      <span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
+                    </div>
+                  </td>
+                  <td class="max-w-[200px] truncate px-3 py-2.5 text-gray-500 dark:text-gray-400" :title="row.group_name">{{ row.group_name }}</td>
+                  <td class="px-3 py-2.5">
+                    <div class="flex items-center gap-2">
+                      <span class="font-semibold tabular-nums" :class="i === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'">{{ formatRate(row.current_rate) }}</span>
+                      <div class="hidden h-1.5 w-20 overflow-hidden rounded bg-gray-100 md:block dark:bg-dark-700">
+                        <div class="h-full rounded" :class="i === 0 ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-dark-500'" :style="{ width: rateBarWidth(row.current_rate, g.maxRate) }"></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-3 py-2.5">
+                    <span
+                      v-if="row.has_change"
+                      class="font-medium"
+                      :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
+                    >
+                      {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
+                    </span>
+                    <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                  </td>
+                  <td class="whitespace-nowrap px-3 py-2.5 text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+
+        <div v-else-if="!overviewLoading" class="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-gray-400 dark:border-dark-600 dark:bg-dark-800">
+          {{ t('admin.relayMonitor.noOverview') }}
         </div>
       </div>
 
@@ -449,11 +539,12 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const tabs = computed(() => [
+  { key: 'compare' as const, label: t('admin.relayMonitor.tabCompare') },
   { key: 'overview' as const, label: t('admin.relayMonitor.tabOverview') },
   { key: 'changes' as const, label: t('admin.relayMonitor.tabChanges') },
   { key: 'sites' as const, label: t('admin.relayMonitor.tabSites') },
 ])
-const activeTab = ref<'overview' | 'changes' | 'sites'>('overview')
+const activeTab = ref<'compare' | 'overview' | 'changes' | 'sites'>('compare')
 
 // ---- 汇总 ----
 const summary = ref({ up_count: 0, down_count: 0 })
@@ -633,6 +724,52 @@ const overviewSites = computed<OverviewSite[]>(() => {
     }
   })
 })
+
+// ---- 比价视图：按 厂商·套餐 聚合，组内站点按当前倍率升序 ----
+const PLAN_ORDER: Record<string, number> = {
+  free: 0, plus: 1, pro: 2, max: 3, team: 4, ultra: 5, enterprise: 6, other: 9,
+}
+interface CompareGroup {
+  key: string
+  vendor: string
+  tier: PlanTier
+  rows: RelayOverviewRow[]
+  maxRate: number
+}
+const compareGroups = computed<CompareGroup[]>(() => {
+  const map = new Map<string, RelayOverviewRow[]>()
+  for (const r of filteredOverview.value) {
+    const key = `${normalizeVendor(r.vendor)}__${planTier(r.group_name).key}`
+    const arr = map.get(key)
+    if (arr) arr.push(r)
+    else map.set(key, [r])
+  }
+  const groups = Array.from(map.entries()).map(([key, rows]) => {
+    const sorted = [...rows].sort((a, b) => a.current_rate - b.current_rate || a.site.localeCompare(b.site))
+    return {
+      key,
+      vendor: normalizeVendor(sorted[0].vendor),
+      tier: planTier(sorted[0].group_name),
+      rows: sorted,
+      maxRate: Math.max(...sorted.map((r) => r.current_rate), 0),
+    }
+  })
+  groups.sort((a, b) =>
+    a.vendor.localeCompare(b.vendor) ||
+    (PLAN_ORDER[a.tier.key] ?? 9) - (PLAN_ORDER[b.tier.key] ?? 9))
+  return groups
+})
+
+// 倍率对比条宽度（相对组内最高倍率；越便宜越短）。
+function rateBarWidth(rate: number, maxRate: number): string {
+  if (!maxRate || maxRate <= 0) return '6%'
+  const pct = Math.max(6, Math.round((rate / maxRate) * 100))
+  return `${pct}%`
+}
+
+// KPI：当前筛选下的站点数 / 分组数。
+const groupCount = computed(() => filteredOverview.value.length)
+const siteCount = computed(() => new Set(filteredOverview.value.map((r) => r.site)).size)
 
 function matchesClientFilters(row: RelayOverviewRow | RelayRateChange): boolean {
   if (siteFilter.value && row.site !== siteFilter.value) return false

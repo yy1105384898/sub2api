@@ -75,6 +75,15 @@ type Proxy func(*sql.Selector)
 // RedeemCode is the predicate function for redeemcode builders.
 type RedeemCode func(*sql.Selector)
 
+// RelayMonitor is the predicate function for relaymonitor builders.
+type RelayMonitor func(*sql.Selector)
+
+// RelayRateChange is the predicate function for relayratechange builders.
+type RelayRateChange func(*sql.Selector)
+
+// RelayRateSnapshot is the predicate function for relayratesnapshot builders.
+type RelayRateSnapshot func(*sql.Selector)
+
 // SecuritySecret is the predicate function for securitysecret builders.
 type SecuritySecret func(*sql.Selector)
 

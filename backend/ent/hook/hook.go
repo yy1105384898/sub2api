@@ -285,6 +285,42 @@ func (f RedeemCodeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RedeemCodeMutation", m)
 }
 
+// The RelayMonitorFunc type is an adapter to allow the use of ordinary
+// function as RelayMonitor mutator.
+type RelayMonitorFunc func(context.Context, *ent.RelayMonitorMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RelayMonitorFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RelayMonitorMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RelayMonitorMutation", m)
+}
+
+// The RelayRateChangeFunc type is an adapter to allow the use of ordinary
+// function as RelayRateChange mutator.
+type RelayRateChangeFunc func(context.Context, *ent.RelayRateChangeMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RelayRateChangeFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RelayRateChangeMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RelayRateChangeMutation", m)
+}
+
+// The RelayRateSnapshotFunc type is an adapter to allow the use of ordinary
+// function as RelayRateSnapshot mutator.
+type RelayRateSnapshotFunc func(context.Context, *ent.RelayRateSnapshotMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f RelayRateSnapshotFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.RelayRateSnapshotMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.RelayRateSnapshotMutation", m)
+}
+
 // The SecuritySecretFunc type is an adapter to allow the use of ordinary
 // function as SecuritySecret mutator.
 type SecuritySecretFunc func(context.Context, *ent.SecuritySecretMutation) (ent.Value, error)

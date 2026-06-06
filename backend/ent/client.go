@@ -38,6 +38,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/relaymonitor"
+	"github.com/Wei-Shaw/sub2api/ent/relayratechange"
+	"github.com/Wei-Shaw/sub2api/ent/relayratesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
@@ -105,6 +108,12 @@ type Client struct {
 	Proxy *ProxyClient
 	// RedeemCode is the client for interacting with the RedeemCode builders.
 	RedeemCode *RedeemCodeClient
+	// RelayMonitor is the client for interacting with the RelayMonitor builders.
+	RelayMonitor *RelayMonitorClient
+	// RelayRateChange is the client for interacting with the RelayRateChange builders.
+	RelayRateChange *RelayRateChangeClient
+	// RelayRateSnapshot is the client for interacting with the RelayRateSnapshot builders.
+	RelayRateSnapshot *RelayRateSnapshotClient
 	// SecuritySecret is the client for interacting with the SecuritySecret builders.
 	SecuritySecret *SecuritySecretClient
 	// Setting is the client for interacting with the Setting builders.
@@ -163,6 +172,9 @@ func (c *Client) init() {
 	c.PromoCodeUsage = NewPromoCodeUsageClient(c.config)
 	c.Proxy = NewProxyClient(c.config)
 	c.RedeemCode = NewRedeemCodeClient(c.config)
+	c.RelayMonitor = NewRelayMonitorClient(c.config)
+	c.RelayRateChange = NewRelayRateChangeClient(c.config)
+	c.RelayRateSnapshot = NewRelayRateSnapshotClient(c.config)
 	c.SecuritySecret = NewSecuritySecretClient(c.config)
 	c.Setting = NewSettingClient(c.config)
 	c.SubscriptionPlan = NewSubscriptionPlanClient(c.config)
@@ -290,6 +302,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
 		Proxy:                         NewProxyClient(cfg),
 		RedeemCode:                    NewRedeemCodeClient(cfg),
+		RelayMonitor:                  NewRelayMonitorClient(cfg),
+		RelayRateChange:               NewRelayRateChangeClient(cfg),
+		RelayRateSnapshot:             NewRelayRateSnapshotClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
@@ -344,6 +359,9 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PromoCodeUsage:                NewPromoCodeUsageClient(cfg),
 		Proxy:                         NewProxyClient(cfg),
 		RedeemCode:                    NewRedeemCodeClient(cfg),
+		RelayMonitor:                  NewRelayMonitorClient(cfg),
+		RelayRateChange:               NewRelayRateChangeClient(cfg),
+		RelayRateSnapshot:             NewRelayRateSnapshotClient(cfg),
 		SecuritySecret:                NewSecuritySecretClient(cfg),
 		Setting:                       NewSettingClient(cfg),
 		SubscriptionPlan:              NewSubscriptionPlanClient(cfg),
@@ -391,9 +409,10 @@ func (c *Client) Use(hooks ...Hook) {
 		c.ChannelMonitorRequestTemplate, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
-		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
-		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
-		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.RelayMonitor, c.RelayRateChange,
+		c.RelayRateSnapshot, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
+		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
+		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
 		c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Use(hooks...)
@@ -410,9 +429,10 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.ChannelMonitorRequestTemplate, c.ErrorPassthroughRule, c.Group,
 		c.IdempotencyRecord, c.IdentityAdoptionDecision, c.PaymentAuditLog,
 		c.PaymentOrder, c.PaymentProviderInstance, c.PendingAuthSession, c.PromoCode,
-		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.SecuritySecret, c.Setting,
-		c.SubscriptionPlan, c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog,
-		c.User, c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
+		c.PromoCodeUsage, c.Proxy, c.RedeemCode, c.RelayMonitor, c.RelayRateChange,
+		c.RelayRateSnapshot, c.SecuritySecret, c.Setting, c.SubscriptionPlan,
+		c.TLSFingerprintProfile, c.UsageCleanupTask, c.UsageLog, c.User,
+		c.UserAllowedGroup, c.UserAttributeDefinition, c.UserAttributeValue,
 		c.UserPlatformQuota, c.UserSubscription,
 	} {
 		n.Intercept(interceptors...)
@@ -468,6 +488,12 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Proxy.mutate(ctx, m)
 	case *RedeemCodeMutation:
 		return c.RedeemCode.mutate(ctx, m)
+	case *RelayMonitorMutation:
+		return c.RelayMonitor.mutate(ctx, m)
+	case *RelayRateChangeMutation:
+		return c.RelayRateChange.mutate(ctx, m)
+	case *RelayRateSnapshotMutation:
+		return c.RelayRateSnapshot.mutate(ctx, m)
 	case *SecuritySecretMutation:
 		return c.SecuritySecret.mutate(ctx, m)
 	case *SettingMutation:
@@ -4171,6 +4197,469 @@ func (c *RedeemCodeClient) mutate(ctx context.Context, m *RedeemCodeMutation) (V
 	}
 }
 
+// RelayMonitorClient is a client for the RelayMonitor schema.
+type RelayMonitorClient struct {
+	config
+}
+
+// NewRelayMonitorClient returns a client for the RelayMonitor from the given config.
+func NewRelayMonitorClient(c config) *RelayMonitorClient {
+	return &RelayMonitorClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `relaymonitor.Hooks(f(g(h())))`.
+func (c *RelayMonitorClient) Use(hooks ...Hook) {
+	c.hooks.RelayMonitor = append(c.hooks.RelayMonitor, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `relaymonitor.Intercept(f(g(h())))`.
+func (c *RelayMonitorClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RelayMonitor = append(c.inters.RelayMonitor, interceptors...)
+}
+
+// Create returns a builder for creating a RelayMonitor entity.
+func (c *RelayMonitorClient) Create() *RelayMonitorCreate {
+	mutation := newRelayMonitorMutation(c.config, OpCreate)
+	return &RelayMonitorCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RelayMonitor entities.
+func (c *RelayMonitorClient) CreateBulk(builders ...*RelayMonitorCreate) *RelayMonitorCreateBulk {
+	return &RelayMonitorCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RelayMonitorClient) MapCreateBulk(slice any, setFunc func(*RelayMonitorCreate, int)) *RelayMonitorCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RelayMonitorCreateBulk{err: fmt.Errorf("calling to RelayMonitorClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RelayMonitorCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RelayMonitorCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RelayMonitor.
+func (c *RelayMonitorClient) Update() *RelayMonitorUpdate {
+	mutation := newRelayMonitorMutation(c.config, OpUpdate)
+	return &RelayMonitorUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RelayMonitorClient) UpdateOne(_m *RelayMonitor) *RelayMonitorUpdateOne {
+	mutation := newRelayMonitorMutation(c.config, OpUpdateOne, withRelayMonitor(_m))
+	return &RelayMonitorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RelayMonitorClient) UpdateOneID(id int64) *RelayMonitorUpdateOne {
+	mutation := newRelayMonitorMutation(c.config, OpUpdateOne, withRelayMonitorID(id))
+	return &RelayMonitorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RelayMonitor.
+func (c *RelayMonitorClient) Delete() *RelayMonitorDelete {
+	mutation := newRelayMonitorMutation(c.config, OpDelete)
+	return &RelayMonitorDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RelayMonitorClient) DeleteOne(_m *RelayMonitor) *RelayMonitorDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RelayMonitorClient) DeleteOneID(id int64) *RelayMonitorDeleteOne {
+	builder := c.Delete().Where(relaymonitor.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RelayMonitorDeleteOne{builder}
+}
+
+// Query returns a query builder for RelayMonitor.
+func (c *RelayMonitorClient) Query() *RelayMonitorQuery {
+	return &RelayMonitorQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRelayMonitor},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RelayMonitor entity by its id.
+func (c *RelayMonitorClient) Get(ctx context.Context, id int64) (*RelayMonitor, error) {
+	return c.Query().Where(relaymonitor.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RelayMonitorClient) GetX(ctx context.Context, id int64) *RelayMonitor {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QuerySnapshots queries the snapshots edge of a RelayMonitor.
+func (c *RelayMonitorClient) QuerySnapshots(_m *RelayMonitor) *RelayRateSnapshotQuery {
+	query := (&RelayRateSnapshotClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(relaymonitor.Table, relaymonitor.FieldID, id),
+			sqlgraph.To(relayratesnapshot.Table, relayratesnapshot.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, relaymonitor.SnapshotsTable, relaymonitor.SnapshotsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChanges queries the changes edge of a RelayMonitor.
+func (c *RelayMonitorClient) QueryChanges(_m *RelayMonitor) *RelayRateChangeQuery {
+	query := (&RelayRateChangeClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(relaymonitor.Table, relaymonitor.FieldID, id),
+			sqlgraph.To(relayratechange.Table, relayratechange.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, relaymonitor.ChangesTable, relaymonitor.ChangesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RelayMonitorClient) Hooks() []Hook {
+	return c.hooks.RelayMonitor
+}
+
+// Interceptors returns the client interceptors.
+func (c *RelayMonitorClient) Interceptors() []Interceptor {
+	return c.inters.RelayMonitor
+}
+
+func (c *RelayMonitorClient) mutate(ctx context.Context, m *RelayMonitorMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RelayMonitorCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RelayMonitorUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RelayMonitorUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RelayMonitorDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RelayMonitor mutation op: %q", m.Op())
+	}
+}
+
+// RelayRateChangeClient is a client for the RelayRateChange schema.
+type RelayRateChangeClient struct {
+	config
+}
+
+// NewRelayRateChangeClient returns a client for the RelayRateChange from the given config.
+func NewRelayRateChangeClient(c config) *RelayRateChangeClient {
+	return &RelayRateChangeClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `relayratechange.Hooks(f(g(h())))`.
+func (c *RelayRateChangeClient) Use(hooks ...Hook) {
+	c.hooks.RelayRateChange = append(c.hooks.RelayRateChange, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `relayratechange.Intercept(f(g(h())))`.
+func (c *RelayRateChangeClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RelayRateChange = append(c.inters.RelayRateChange, interceptors...)
+}
+
+// Create returns a builder for creating a RelayRateChange entity.
+func (c *RelayRateChangeClient) Create() *RelayRateChangeCreate {
+	mutation := newRelayRateChangeMutation(c.config, OpCreate)
+	return &RelayRateChangeCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RelayRateChange entities.
+func (c *RelayRateChangeClient) CreateBulk(builders ...*RelayRateChangeCreate) *RelayRateChangeCreateBulk {
+	return &RelayRateChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RelayRateChangeClient) MapCreateBulk(slice any, setFunc func(*RelayRateChangeCreate, int)) *RelayRateChangeCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RelayRateChangeCreateBulk{err: fmt.Errorf("calling to RelayRateChangeClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RelayRateChangeCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RelayRateChangeCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RelayRateChange.
+func (c *RelayRateChangeClient) Update() *RelayRateChangeUpdate {
+	mutation := newRelayRateChangeMutation(c.config, OpUpdate)
+	return &RelayRateChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RelayRateChangeClient) UpdateOne(_m *RelayRateChange) *RelayRateChangeUpdateOne {
+	mutation := newRelayRateChangeMutation(c.config, OpUpdateOne, withRelayRateChange(_m))
+	return &RelayRateChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RelayRateChangeClient) UpdateOneID(id int64) *RelayRateChangeUpdateOne {
+	mutation := newRelayRateChangeMutation(c.config, OpUpdateOne, withRelayRateChangeID(id))
+	return &RelayRateChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RelayRateChange.
+func (c *RelayRateChangeClient) Delete() *RelayRateChangeDelete {
+	mutation := newRelayRateChangeMutation(c.config, OpDelete)
+	return &RelayRateChangeDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RelayRateChangeClient) DeleteOne(_m *RelayRateChange) *RelayRateChangeDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RelayRateChangeClient) DeleteOneID(id int64) *RelayRateChangeDeleteOne {
+	builder := c.Delete().Where(relayratechange.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RelayRateChangeDeleteOne{builder}
+}
+
+// Query returns a query builder for RelayRateChange.
+func (c *RelayRateChangeClient) Query() *RelayRateChangeQuery {
+	return &RelayRateChangeQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRelayRateChange},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RelayRateChange entity by its id.
+func (c *RelayRateChangeClient) Get(ctx context.Context, id int64) (*RelayRateChange, error) {
+	return c.Query().Where(relayratechange.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RelayRateChangeClient) GetX(ctx context.Context, id int64) *RelayRateChange {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryMonitor queries the monitor edge of a RelayRateChange.
+func (c *RelayRateChangeClient) QueryMonitor(_m *RelayRateChange) *RelayMonitorQuery {
+	query := (&RelayMonitorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(relayratechange.Table, relayratechange.FieldID, id),
+			sqlgraph.To(relaymonitor.Table, relaymonitor.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, relayratechange.MonitorTable, relayratechange.MonitorColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RelayRateChangeClient) Hooks() []Hook {
+	return c.hooks.RelayRateChange
+}
+
+// Interceptors returns the client interceptors.
+func (c *RelayRateChangeClient) Interceptors() []Interceptor {
+	return c.inters.RelayRateChange
+}
+
+func (c *RelayRateChangeClient) mutate(ctx context.Context, m *RelayRateChangeMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RelayRateChangeCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RelayRateChangeUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RelayRateChangeUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RelayRateChangeDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RelayRateChange mutation op: %q", m.Op())
+	}
+}
+
+// RelayRateSnapshotClient is a client for the RelayRateSnapshot schema.
+type RelayRateSnapshotClient struct {
+	config
+}
+
+// NewRelayRateSnapshotClient returns a client for the RelayRateSnapshot from the given config.
+func NewRelayRateSnapshotClient(c config) *RelayRateSnapshotClient {
+	return &RelayRateSnapshotClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `relayratesnapshot.Hooks(f(g(h())))`.
+func (c *RelayRateSnapshotClient) Use(hooks ...Hook) {
+	c.hooks.RelayRateSnapshot = append(c.hooks.RelayRateSnapshot, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `relayratesnapshot.Intercept(f(g(h())))`.
+func (c *RelayRateSnapshotClient) Intercept(interceptors ...Interceptor) {
+	c.inters.RelayRateSnapshot = append(c.inters.RelayRateSnapshot, interceptors...)
+}
+
+// Create returns a builder for creating a RelayRateSnapshot entity.
+func (c *RelayRateSnapshotClient) Create() *RelayRateSnapshotCreate {
+	mutation := newRelayRateSnapshotMutation(c.config, OpCreate)
+	return &RelayRateSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of RelayRateSnapshot entities.
+func (c *RelayRateSnapshotClient) CreateBulk(builders ...*RelayRateSnapshotCreate) *RelayRateSnapshotCreateBulk {
+	return &RelayRateSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *RelayRateSnapshotClient) MapCreateBulk(slice any, setFunc func(*RelayRateSnapshotCreate, int)) *RelayRateSnapshotCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &RelayRateSnapshotCreateBulk{err: fmt.Errorf("calling to RelayRateSnapshotClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*RelayRateSnapshotCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &RelayRateSnapshotCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for RelayRateSnapshot.
+func (c *RelayRateSnapshotClient) Update() *RelayRateSnapshotUpdate {
+	mutation := newRelayRateSnapshotMutation(c.config, OpUpdate)
+	return &RelayRateSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *RelayRateSnapshotClient) UpdateOne(_m *RelayRateSnapshot) *RelayRateSnapshotUpdateOne {
+	mutation := newRelayRateSnapshotMutation(c.config, OpUpdateOne, withRelayRateSnapshot(_m))
+	return &RelayRateSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *RelayRateSnapshotClient) UpdateOneID(id int64) *RelayRateSnapshotUpdateOne {
+	mutation := newRelayRateSnapshotMutation(c.config, OpUpdateOne, withRelayRateSnapshotID(id))
+	return &RelayRateSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for RelayRateSnapshot.
+func (c *RelayRateSnapshotClient) Delete() *RelayRateSnapshotDelete {
+	mutation := newRelayRateSnapshotMutation(c.config, OpDelete)
+	return &RelayRateSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *RelayRateSnapshotClient) DeleteOne(_m *RelayRateSnapshot) *RelayRateSnapshotDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *RelayRateSnapshotClient) DeleteOneID(id int64) *RelayRateSnapshotDeleteOne {
+	builder := c.Delete().Where(relayratesnapshot.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &RelayRateSnapshotDeleteOne{builder}
+}
+
+// Query returns a query builder for RelayRateSnapshot.
+func (c *RelayRateSnapshotClient) Query() *RelayRateSnapshotQuery {
+	return &RelayRateSnapshotQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeRelayRateSnapshot},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a RelayRateSnapshot entity by its id.
+func (c *RelayRateSnapshotClient) Get(ctx context.Context, id int64) (*RelayRateSnapshot, error) {
+	return c.Query().Where(relayratesnapshot.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *RelayRateSnapshotClient) GetX(ctx context.Context, id int64) *RelayRateSnapshot {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryMonitor queries the monitor edge of a RelayRateSnapshot.
+func (c *RelayRateSnapshotClient) QueryMonitor(_m *RelayRateSnapshot) *RelayMonitorQuery {
+	query := (&RelayMonitorClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(relayratesnapshot.Table, relayratesnapshot.FieldID, id),
+			sqlgraph.To(relaymonitor.Table, relaymonitor.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, relayratesnapshot.MonitorTable, relayratesnapshot.MonitorColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *RelayRateSnapshotClient) Hooks() []Hook {
+	return c.hooks.RelayRateSnapshot
+}
+
+// Interceptors returns the client interceptors.
+func (c *RelayRateSnapshotClient) Interceptors() []Interceptor {
+	return c.inters.RelayRateSnapshot
+}
+
+func (c *RelayRateSnapshotClient) mutate(ctx context.Context, m *RelayRateSnapshotMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&RelayRateSnapshotCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&RelayRateSnapshotUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&RelayRateSnapshotUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&RelayRateSnapshotDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown RelayRateSnapshot mutation op: %q", m.Op())
+	}
+}
+
 // SecuritySecretClient is a client for the SecuritySecret schema.
 type SecuritySecretClient struct {
 	config
@@ -6198,7 +6687,8 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, ErrorPassthroughRule,
 		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
 		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
+		PromoCodeUsage, Proxy, RedeemCode, RelayMonitor, RelayRateChange,
+		RelayRateSnapshot, SecuritySecret, Setting, SubscriptionPlan,
 		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
 		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
 		UserSubscription []ent.Hook
@@ -6209,7 +6699,8 @@ type (
 		ChannelMonitorHistory, ChannelMonitorRequestTemplate, ErrorPassthroughRule,
 		Group, IdempotencyRecord, IdentityAdoptionDecision, PaymentAuditLog,
 		PaymentOrder, PaymentProviderInstance, PendingAuthSession, PromoCode,
-		PromoCodeUsage, Proxy, RedeemCode, SecuritySecret, Setting, SubscriptionPlan,
+		PromoCodeUsage, Proxy, RedeemCode, RelayMonitor, RelayRateChange,
+		RelayRateSnapshot, SecuritySecret, Setting, SubscriptionPlan,
 		TLSFingerprintProfile, UsageCleanupTask, UsageLog, User, UserAllowedGroup,
 		UserAttributeDefinition, UserAttributeValue, UserPlatformQuota,
 		UserSubscription []ent.Interceptor

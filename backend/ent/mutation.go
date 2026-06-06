@@ -36,6 +36,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/relaymonitor"
+	"github.com/Wei-Shaw/sub2api/ent/relayratechange"
+	"github.com/Wei-Shaw/sub2api/ent/relayratesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
@@ -83,6 +86,9 @@ const (
 	TypePromoCodeUsage                = "PromoCodeUsage"
 	TypeProxy                         = "Proxy"
 	TypeRedeemCode                    = "RedeemCode"
+	TypeRelayMonitor                  = "RelayMonitor"
+	TypeRelayRateChange               = "RelayRateChange"
+	TypeRelayRateSnapshot             = "RelayRateSnapshot"
 	TypeSecuritySecret                = "SecuritySecret"
 	TypeSetting                       = "Setting"
 	TypeSubscriptionPlan              = "SubscriptionPlan"
@@ -29896,6 +29902,2874 @@ func (m *RedeemCodeMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown RedeemCode edge %s", name)
+}
+
+// RelayMonitorMutation represents an operation that mutates the RelayMonitor nodes in the graph.
+type RelayMonitorMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int64
+	created_at           *time.Time
+	updated_at           *time.Time
+	name                 *string
+	system               *relaymonitor.System
+	base_url             *string
+	vendor               *string
+	credential_encrypted *string
+	watched_groups       *[]string
+	appendwatched_groups []string
+	enabled              *bool
+	interval_seconds     *int
+	addinterval_seconds  *int
+	last_checked_at      *time.Time
+	last_error           *string
+	created_by           *int64
+	addcreated_by        *int64
+	clearedFields        map[string]struct{}
+	snapshots            map[int64]struct{}
+	removedsnapshots     map[int64]struct{}
+	clearedsnapshots     bool
+	changes              map[int64]struct{}
+	removedchanges       map[int64]struct{}
+	clearedchanges       bool
+	done                 bool
+	oldValue             func(context.Context) (*RelayMonitor, error)
+	predicates           []predicate.RelayMonitor
+}
+
+var _ ent.Mutation = (*RelayMonitorMutation)(nil)
+
+// relaymonitorOption allows management of the mutation configuration using functional options.
+type relaymonitorOption func(*RelayMonitorMutation)
+
+// newRelayMonitorMutation creates new mutation for the RelayMonitor entity.
+func newRelayMonitorMutation(c config, op Op, opts ...relaymonitorOption) *RelayMonitorMutation {
+	m := &RelayMonitorMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRelayMonitor,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRelayMonitorID sets the ID field of the mutation.
+func withRelayMonitorID(id int64) relaymonitorOption {
+	return func(m *RelayMonitorMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RelayMonitor
+		)
+		m.oldValue = func(ctx context.Context) (*RelayMonitor, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RelayMonitor.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRelayMonitor sets the old RelayMonitor of the mutation.
+func withRelayMonitor(node *RelayMonitor) relaymonitorOption {
+	return func(m *RelayMonitorMutation) {
+		m.oldValue = func(context.Context) (*RelayMonitor, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RelayMonitorMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RelayMonitorMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RelayMonitorMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RelayMonitorMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RelayMonitor.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *RelayMonitorMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *RelayMonitorMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *RelayMonitorMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RelayMonitorMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RelayMonitorMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RelayMonitorMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// SetName sets the "name" field.
+func (m *RelayMonitorMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *RelayMonitorMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *RelayMonitorMutation) ResetName() {
+	m.name = nil
+}
+
+// SetSystem sets the "system" field.
+func (m *RelayMonitorMutation) SetSystem(r relaymonitor.System) {
+	m.system = &r
+}
+
+// System returns the value of the "system" field in the mutation.
+func (m *RelayMonitorMutation) System() (r relaymonitor.System, exists bool) {
+	v := m.system
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSystem returns the old "system" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldSystem(ctx context.Context) (v relaymonitor.System, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSystem is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSystem requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSystem: %w", err)
+	}
+	return oldValue.System, nil
+}
+
+// ResetSystem resets all changes to the "system" field.
+func (m *RelayMonitorMutation) ResetSystem() {
+	m.system = nil
+}
+
+// SetBaseURL sets the "base_url" field.
+func (m *RelayMonitorMutation) SetBaseURL(s string) {
+	m.base_url = &s
+}
+
+// BaseURL returns the value of the "base_url" field in the mutation.
+func (m *RelayMonitorMutation) BaseURL() (r string, exists bool) {
+	v := m.base_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBaseURL returns the old "base_url" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldBaseURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBaseURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBaseURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBaseURL: %w", err)
+	}
+	return oldValue.BaseURL, nil
+}
+
+// ResetBaseURL resets all changes to the "base_url" field.
+func (m *RelayMonitorMutation) ResetBaseURL() {
+	m.base_url = nil
+}
+
+// SetVendor sets the "vendor" field.
+func (m *RelayMonitorMutation) SetVendor(s string) {
+	m.vendor = &s
+}
+
+// Vendor returns the value of the "vendor" field in the mutation.
+func (m *RelayMonitorMutation) Vendor() (r string, exists bool) {
+	v := m.vendor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVendor returns the old "vendor" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldVendor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVendor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVendor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVendor: %w", err)
+	}
+	return oldValue.Vendor, nil
+}
+
+// ClearVendor clears the value of the "vendor" field.
+func (m *RelayMonitorMutation) ClearVendor() {
+	m.vendor = nil
+	m.clearedFields[relaymonitor.FieldVendor] = struct{}{}
+}
+
+// VendorCleared returns if the "vendor" field was cleared in this mutation.
+func (m *RelayMonitorMutation) VendorCleared() bool {
+	_, ok := m.clearedFields[relaymonitor.FieldVendor]
+	return ok
+}
+
+// ResetVendor resets all changes to the "vendor" field.
+func (m *RelayMonitorMutation) ResetVendor() {
+	m.vendor = nil
+	delete(m.clearedFields, relaymonitor.FieldVendor)
+}
+
+// SetCredentialEncrypted sets the "credential_encrypted" field.
+func (m *RelayMonitorMutation) SetCredentialEncrypted(s string) {
+	m.credential_encrypted = &s
+}
+
+// CredentialEncrypted returns the value of the "credential_encrypted" field in the mutation.
+func (m *RelayMonitorMutation) CredentialEncrypted() (r string, exists bool) {
+	v := m.credential_encrypted
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCredentialEncrypted returns the old "credential_encrypted" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldCredentialEncrypted(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCredentialEncrypted is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCredentialEncrypted requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCredentialEncrypted: %w", err)
+	}
+	return oldValue.CredentialEncrypted, nil
+}
+
+// ClearCredentialEncrypted clears the value of the "credential_encrypted" field.
+func (m *RelayMonitorMutation) ClearCredentialEncrypted() {
+	m.credential_encrypted = nil
+	m.clearedFields[relaymonitor.FieldCredentialEncrypted] = struct{}{}
+}
+
+// CredentialEncryptedCleared returns if the "credential_encrypted" field was cleared in this mutation.
+func (m *RelayMonitorMutation) CredentialEncryptedCleared() bool {
+	_, ok := m.clearedFields[relaymonitor.FieldCredentialEncrypted]
+	return ok
+}
+
+// ResetCredentialEncrypted resets all changes to the "credential_encrypted" field.
+func (m *RelayMonitorMutation) ResetCredentialEncrypted() {
+	m.credential_encrypted = nil
+	delete(m.clearedFields, relaymonitor.FieldCredentialEncrypted)
+}
+
+// SetWatchedGroups sets the "watched_groups" field.
+func (m *RelayMonitorMutation) SetWatchedGroups(s []string) {
+	m.watched_groups = &s
+	m.appendwatched_groups = nil
+}
+
+// WatchedGroups returns the value of the "watched_groups" field in the mutation.
+func (m *RelayMonitorMutation) WatchedGroups() (r []string, exists bool) {
+	v := m.watched_groups
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWatchedGroups returns the old "watched_groups" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldWatchedGroups(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWatchedGroups is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWatchedGroups requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWatchedGroups: %w", err)
+	}
+	return oldValue.WatchedGroups, nil
+}
+
+// AppendWatchedGroups adds s to the "watched_groups" field.
+func (m *RelayMonitorMutation) AppendWatchedGroups(s []string) {
+	m.appendwatched_groups = append(m.appendwatched_groups, s...)
+}
+
+// AppendedWatchedGroups returns the list of values that were appended to the "watched_groups" field in this mutation.
+func (m *RelayMonitorMutation) AppendedWatchedGroups() ([]string, bool) {
+	if len(m.appendwatched_groups) == 0 {
+		return nil, false
+	}
+	return m.appendwatched_groups, true
+}
+
+// ResetWatchedGroups resets all changes to the "watched_groups" field.
+func (m *RelayMonitorMutation) ResetWatchedGroups() {
+	m.watched_groups = nil
+	m.appendwatched_groups = nil
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *RelayMonitorMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *RelayMonitorMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *RelayMonitorMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetIntervalSeconds sets the "interval_seconds" field.
+func (m *RelayMonitorMutation) SetIntervalSeconds(i int) {
+	m.interval_seconds = &i
+	m.addinterval_seconds = nil
+}
+
+// IntervalSeconds returns the value of the "interval_seconds" field in the mutation.
+func (m *RelayMonitorMutation) IntervalSeconds() (r int, exists bool) {
+	v := m.interval_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIntervalSeconds returns the old "interval_seconds" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldIntervalSeconds(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIntervalSeconds is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIntervalSeconds requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIntervalSeconds: %w", err)
+	}
+	return oldValue.IntervalSeconds, nil
+}
+
+// AddIntervalSeconds adds i to the "interval_seconds" field.
+func (m *RelayMonitorMutation) AddIntervalSeconds(i int) {
+	if m.addinterval_seconds != nil {
+		*m.addinterval_seconds += i
+	} else {
+		m.addinterval_seconds = &i
+	}
+}
+
+// AddedIntervalSeconds returns the value that was added to the "interval_seconds" field in this mutation.
+func (m *RelayMonitorMutation) AddedIntervalSeconds() (r int, exists bool) {
+	v := m.addinterval_seconds
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetIntervalSeconds resets all changes to the "interval_seconds" field.
+func (m *RelayMonitorMutation) ResetIntervalSeconds() {
+	m.interval_seconds = nil
+	m.addinterval_seconds = nil
+}
+
+// SetLastCheckedAt sets the "last_checked_at" field.
+func (m *RelayMonitorMutation) SetLastCheckedAt(t time.Time) {
+	m.last_checked_at = &t
+}
+
+// LastCheckedAt returns the value of the "last_checked_at" field in the mutation.
+func (m *RelayMonitorMutation) LastCheckedAt() (r time.Time, exists bool) {
+	v := m.last_checked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastCheckedAt returns the old "last_checked_at" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldLastCheckedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastCheckedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastCheckedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastCheckedAt: %w", err)
+	}
+	return oldValue.LastCheckedAt, nil
+}
+
+// ClearLastCheckedAt clears the value of the "last_checked_at" field.
+func (m *RelayMonitorMutation) ClearLastCheckedAt() {
+	m.last_checked_at = nil
+	m.clearedFields[relaymonitor.FieldLastCheckedAt] = struct{}{}
+}
+
+// LastCheckedAtCleared returns if the "last_checked_at" field was cleared in this mutation.
+func (m *RelayMonitorMutation) LastCheckedAtCleared() bool {
+	_, ok := m.clearedFields[relaymonitor.FieldLastCheckedAt]
+	return ok
+}
+
+// ResetLastCheckedAt resets all changes to the "last_checked_at" field.
+func (m *RelayMonitorMutation) ResetLastCheckedAt() {
+	m.last_checked_at = nil
+	delete(m.clearedFields, relaymonitor.FieldLastCheckedAt)
+}
+
+// SetLastError sets the "last_error" field.
+func (m *RelayMonitorMutation) SetLastError(s string) {
+	m.last_error = &s
+}
+
+// LastError returns the value of the "last_error" field in the mutation.
+func (m *RelayMonitorMutation) LastError() (r string, exists bool) {
+	v := m.last_error
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLastError returns the old "last_error" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldLastError(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLastError is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLastError requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLastError: %w", err)
+	}
+	return oldValue.LastError, nil
+}
+
+// ClearLastError clears the value of the "last_error" field.
+func (m *RelayMonitorMutation) ClearLastError() {
+	m.last_error = nil
+	m.clearedFields[relaymonitor.FieldLastError] = struct{}{}
+}
+
+// LastErrorCleared returns if the "last_error" field was cleared in this mutation.
+func (m *RelayMonitorMutation) LastErrorCleared() bool {
+	_, ok := m.clearedFields[relaymonitor.FieldLastError]
+	return ok
+}
+
+// ResetLastError resets all changes to the "last_error" field.
+func (m *RelayMonitorMutation) ResetLastError() {
+	m.last_error = nil
+	delete(m.clearedFields, relaymonitor.FieldLastError)
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (m *RelayMonitorMutation) SetCreatedBy(i int64) {
+	m.created_by = &i
+	m.addcreated_by = nil
+}
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *RelayMonitorMutation) CreatedBy() (r int64, exists bool) {
+	v := m.created_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldCreatedBy(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+	}
+	return oldValue.CreatedBy, nil
+}
+
+// AddCreatedBy adds i to the "created_by" field.
+func (m *RelayMonitorMutation) AddCreatedBy(i int64) {
+	if m.addcreated_by != nil {
+		*m.addcreated_by += i
+	} else {
+		m.addcreated_by = &i
+	}
+}
+
+// AddedCreatedBy returns the value that was added to the "created_by" field in this mutation.
+func (m *RelayMonitorMutation) AddedCreatedBy() (r int64, exists bool) {
+	v := m.addcreated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *RelayMonitorMutation) ResetCreatedBy() {
+	m.created_by = nil
+	m.addcreated_by = nil
+}
+
+// AddSnapshotIDs adds the "snapshots" edge to the RelayRateSnapshot entity by ids.
+func (m *RelayMonitorMutation) AddSnapshotIDs(ids ...int64) {
+	if m.snapshots == nil {
+		m.snapshots = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.snapshots[ids[i]] = struct{}{}
+	}
+}
+
+// ClearSnapshots clears the "snapshots" edge to the RelayRateSnapshot entity.
+func (m *RelayMonitorMutation) ClearSnapshots() {
+	m.clearedsnapshots = true
+}
+
+// SnapshotsCleared reports if the "snapshots" edge to the RelayRateSnapshot entity was cleared.
+func (m *RelayMonitorMutation) SnapshotsCleared() bool {
+	return m.clearedsnapshots
+}
+
+// RemoveSnapshotIDs removes the "snapshots" edge to the RelayRateSnapshot entity by IDs.
+func (m *RelayMonitorMutation) RemoveSnapshotIDs(ids ...int64) {
+	if m.removedsnapshots == nil {
+		m.removedsnapshots = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.snapshots, ids[i])
+		m.removedsnapshots[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedSnapshots returns the removed IDs of the "snapshots" edge to the RelayRateSnapshot entity.
+func (m *RelayMonitorMutation) RemovedSnapshotsIDs() (ids []int64) {
+	for id := range m.removedsnapshots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// SnapshotsIDs returns the "snapshots" edge IDs in the mutation.
+func (m *RelayMonitorMutation) SnapshotsIDs() (ids []int64) {
+	for id := range m.snapshots {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetSnapshots resets all changes to the "snapshots" edge.
+func (m *RelayMonitorMutation) ResetSnapshots() {
+	m.snapshots = nil
+	m.clearedsnapshots = false
+	m.removedsnapshots = nil
+}
+
+// AddChangeIDs adds the "changes" edge to the RelayRateChange entity by ids.
+func (m *RelayMonitorMutation) AddChangeIDs(ids ...int64) {
+	if m.changes == nil {
+		m.changes = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.changes[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChanges clears the "changes" edge to the RelayRateChange entity.
+func (m *RelayMonitorMutation) ClearChanges() {
+	m.clearedchanges = true
+}
+
+// ChangesCleared reports if the "changes" edge to the RelayRateChange entity was cleared.
+func (m *RelayMonitorMutation) ChangesCleared() bool {
+	return m.clearedchanges
+}
+
+// RemoveChangeIDs removes the "changes" edge to the RelayRateChange entity by IDs.
+func (m *RelayMonitorMutation) RemoveChangeIDs(ids ...int64) {
+	if m.removedchanges == nil {
+		m.removedchanges = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.changes, ids[i])
+		m.removedchanges[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChanges returns the removed IDs of the "changes" edge to the RelayRateChange entity.
+func (m *RelayMonitorMutation) RemovedChangesIDs() (ids []int64) {
+	for id := range m.removedchanges {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChangesIDs returns the "changes" edge IDs in the mutation.
+func (m *RelayMonitorMutation) ChangesIDs() (ids []int64) {
+	for id := range m.changes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChanges resets all changes to the "changes" edge.
+func (m *RelayMonitorMutation) ResetChanges() {
+	m.changes = nil
+	m.clearedchanges = false
+	m.removedchanges = nil
+}
+
+// Where appends a list predicates to the RelayMonitorMutation builder.
+func (m *RelayMonitorMutation) Where(ps ...predicate.RelayMonitor) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RelayMonitorMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RelayMonitorMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RelayMonitor, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RelayMonitorMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RelayMonitorMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RelayMonitor).
+func (m *RelayMonitorMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RelayMonitorMutation) Fields() []string {
+	fields := make([]string, 0, 13)
+	if m.created_at != nil {
+		fields = append(fields, relaymonitor.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, relaymonitor.FieldUpdatedAt)
+	}
+	if m.name != nil {
+		fields = append(fields, relaymonitor.FieldName)
+	}
+	if m.system != nil {
+		fields = append(fields, relaymonitor.FieldSystem)
+	}
+	if m.base_url != nil {
+		fields = append(fields, relaymonitor.FieldBaseURL)
+	}
+	if m.vendor != nil {
+		fields = append(fields, relaymonitor.FieldVendor)
+	}
+	if m.credential_encrypted != nil {
+		fields = append(fields, relaymonitor.FieldCredentialEncrypted)
+	}
+	if m.watched_groups != nil {
+		fields = append(fields, relaymonitor.FieldWatchedGroups)
+	}
+	if m.enabled != nil {
+		fields = append(fields, relaymonitor.FieldEnabled)
+	}
+	if m.interval_seconds != nil {
+		fields = append(fields, relaymonitor.FieldIntervalSeconds)
+	}
+	if m.last_checked_at != nil {
+		fields = append(fields, relaymonitor.FieldLastCheckedAt)
+	}
+	if m.last_error != nil {
+		fields = append(fields, relaymonitor.FieldLastError)
+	}
+	if m.created_by != nil {
+		fields = append(fields, relaymonitor.FieldCreatedBy)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RelayMonitorMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case relaymonitor.FieldCreatedAt:
+		return m.CreatedAt()
+	case relaymonitor.FieldUpdatedAt:
+		return m.UpdatedAt()
+	case relaymonitor.FieldName:
+		return m.Name()
+	case relaymonitor.FieldSystem:
+		return m.System()
+	case relaymonitor.FieldBaseURL:
+		return m.BaseURL()
+	case relaymonitor.FieldVendor:
+		return m.Vendor()
+	case relaymonitor.FieldCredentialEncrypted:
+		return m.CredentialEncrypted()
+	case relaymonitor.FieldWatchedGroups:
+		return m.WatchedGroups()
+	case relaymonitor.FieldEnabled:
+		return m.Enabled()
+	case relaymonitor.FieldIntervalSeconds:
+		return m.IntervalSeconds()
+	case relaymonitor.FieldLastCheckedAt:
+		return m.LastCheckedAt()
+	case relaymonitor.FieldLastError:
+		return m.LastError()
+	case relaymonitor.FieldCreatedBy:
+		return m.CreatedBy()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RelayMonitorMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case relaymonitor.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case relaymonitor.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	case relaymonitor.FieldName:
+		return m.OldName(ctx)
+	case relaymonitor.FieldSystem:
+		return m.OldSystem(ctx)
+	case relaymonitor.FieldBaseURL:
+		return m.OldBaseURL(ctx)
+	case relaymonitor.FieldVendor:
+		return m.OldVendor(ctx)
+	case relaymonitor.FieldCredentialEncrypted:
+		return m.OldCredentialEncrypted(ctx)
+	case relaymonitor.FieldWatchedGroups:
+		return m.OldWatchedGroups(ctx)
+	case relaymonitor.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case relaymonitor.FieldIntervalSeconds:
+		return m.OldIntervalSeconds(ctx)
+	case relaymonitor.FieldLastCheckedAt:
+		return m.OldLastCheckedAt(ctx)
+	case relaymonitor.FieldLastError:
+		return m.OldLastError(ctx)
+	case relaymonitor.FieldCreatedBy:
+		return m.OldCreatedBy(ctx)
+	}
+	return nil, fmt.Errorf("unknown RelayMonitor field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayMonitorMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case relaymonitor.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case relaymonitor.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	case relaymonitor.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case relaymonitor.FieldSystem:
+		v, ok := value.(relaymonitor.System)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSystem(v)
+		return nil
+	case relaymonitor.FieldBaseURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBaseURL(v)
+		return nil
+	case relaymonitor.FieldVendor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVendor(v)
+		return nil
+	case relaymonitor.FieldCredentialEncrypted:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCredentialEncrypted(v)
+		return nil
+	case relaymonitor.FieldWatchedGroups:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWatchedGroups(v)
+		return nil
+	case relaymonitor.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case relaymonitor.FieldIntervalSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIntervalSeconds(v)
+		return nil
+	case relaymonitor.FieldLastCheckedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastCheckedAt(v)
+		return nil
+	case relaymonitor.FieldLastError:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLastError(v)
+		return nil
+	case relaymonitor.FieldCreatedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayMonitor field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RelayMonitorMutation) AddedFields() []string {
+	var fields []string
+	if m.addinterval_seconds != nil {
+		fields = append(fields, relaymonitor.FieldIntervalSeconds)
+	}
+	if m.addcreated_by != nil {
+		fields = append(fields, relaymonitor.FieldCreatedBy)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RelayMonitorMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case relaymonitor.FieldIntervalSeconds:
+		return m.AddedIntervalSeconds()
+	case relaymonitor.FieldCreatedBy:
+		return m.AddedCreatedBy()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayMonitorMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case relaymonitor.FieldIntervalSeconds:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddIntervalSeconds(v)
+		return nil
+	case relaymonitor.FieldCreatedBy:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCreatedBy(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayMonitor numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RelayMonitorMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(relaymonitor.FieldVendor) {
+		fields = append(fields, relaymonitor.FieldVendor)
+	}
+	if m.FieldCleared(relaymonitor.FieldCredentialEncrypted) {
+		fields = append(fields, relaymonitor.FieldCredentialEncrypted)
+	}
+	if m.FieldCleared(relaymonitor.FieldLastCheckedAt) {
+		fields = append(fields, relaymonitor.FieldLastCheckedAt)
+	}
+	if m.FieldCleared(relaymonitor.FieldLastError) {
+		fields = append(fields, relaymonitor.FieldLastError)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RelayMonitorMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RelayMonitorMutation) ClearField(name string) error {
+	switch name {
+	case relaymonitor.FieldVendor:
+		m.ClearVendor()
+		return nil
+	case relaymonitor.FieldCredentialEncrypted:
+		m.ClearCredentialEncrypted()
+		return nil
+	case relaymonitor.FieldLastCheckedAt:
+		m.ClearLastCheckedAt()
+		return nil
+	case relaymonitor.FieldLastError:
+		m.ClearLastError()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayMonitor nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RelayMonitorMutation) ResetField(name string) error {
+	switch name {
+	case relaymonitor.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case relaymonitor.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	case relaymonitor.FieldName:
+		m.ResetName()
+		return nil
+	case relaymonitor.FieldSystem:
+		m.ResetSystem()
+		return nil
+	case relaymonitor.FieldBaseURL:
+		m.ResetBaseURL()
+		return nil
+	case relaymonitor.FieldVendor:
+		m.ResetVendor()
+		return nil
+	case relaymonitor.FieldCredentialEncrypted:
+		m.ResetCredentialEncrypted()
+		return nil
+	case relaymonitor.FieldWatchedGroups:
+		m.ResetWatchedGroups()
+		return nil
+	case relaymonitor.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case relaymonitor.FieldIntervalSeconds:
+		m.ResetIntervalSeconds()
+		return nil
+	case relaymonitor.FieldLastCheckedAt:
+		m.ResetLastCheckedAt()
+		return nil
+	case relaymonitor.FieldLastError:
+		m.ResetLastError()
+		return nil
+	case relaymonitor.FieldCreatedBy:
+		m.ResetCreatedBy()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayMonitor field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RelayMonitorMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.snapshots != nil {
+		edges = append(edges, relaymonitor.EdgeSnapshots)
+	}
+	if m.changes != nil {
+		edges = append(edges, relaymonitor.EdgeChanges)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RelayMonitorMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case relaymonitor.EdgeSnapshots:
+		ids := make([]ent.Value, 0, len(m.snapshots))
+		for id := range m.snapshots {
+			ids = append(ids, id)
+		}
+		return ids
+	case relaymonitor.EdgeChanges:
+		ids := make([]ent.Value, 0, len(m.changes))
+		for id := range m.changes {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RelayMonitorMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedsnapshots != nil {
+		edges = append(edges, relaymonitor.EdgeSnapshots)
+	}
+	if m.removedchanges != nil {
+		edges = append(edges, relaymonitor.EdgeChanges)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RelayMonitorMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case relaymonitor.EdgeSnapshots:
+		ids := make([]ent.Value, 0, len(m.removedsnapshots))
+		for id := range m.removedsnapshots {
+			ids = append(ids, id)
+		}
+		return ids
+	case relaymonitor.EdgeChanges:
+		ids := make([]ent.Value, 0, len(m.removedchanges))
+		for id := range m.removedchanges {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RelayMonitorMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedsnapshots {
+		edges = append(edges, relaymonitor.EdgeSnapshots)
+	}
+	if m.clearedchanges {
+		edges = append(edges, relaymonitor.EdgeChanges)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RelayMonitorMutation) EdgeCleared(name string) bool {
+	switch name {
+	case relaymonitor.EdgeSnapshots:
+		return m.clearedsnapshots
+	case relaymonitor.EdgeChanges:
+		return m.clearedchanges
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RelayMonitorMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown RelayMonitor unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RelayMonitorMutation) ResetEdge(name string) error {
+	switch name {
+	case relaymonitor.EdgeSnapshots:
+		m.ResetSnapshots()
+		return nil
+	case relaymonitor.EdgeChanges:
+		m.ResetChanges()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayMonitor edge %s", name)
+}
+
+// RelayRateChangeMutation represents an operation that mutates the RelayRateChange nodes in the graph.
+type RelayRateChangeMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int64
+	site           *string
+	system         *string
+	vendor         *string
+	group_name     *string
+	old_rate       *float64
+	addold_rate    *float64
+	new_rate       *float64
+	addnew_rate    *float64
+	direction      *relayratechange.Direction
+	content        *string
+	detected_at    *time.Time
+	clearedFields  map[string]struct{}
+	monitor        *int64
+	clearedmonitor bool
+	done           bool
+	oldValue       func(context.Context) (*RelayRateChange, error)
+	predicates     []predicate.RelayRateChange
+}
+
+var _ ent.Mutation = (*RelayRateChangeMutation)(nil)
+
+// relayratechangeOption allows management of the mutation configuration using functional options.
+type relayratechangeOption func(*RelayRateChangeMutation)
+
+// newRelayRateChangeMutation creates new mutation for the RelayRateChange entity.
+func newRelayRateChangeMutation(c config, op Op, opts ...relayratechangeOption) *RelayRateChangeMutation {
+	m := &RelayRateChangeMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRelayRateChange,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRelayRateChangeID sets the ID field of the mutation.
+func withRelayRateChangeID(id int64) relayratechangeOption {
+	return func(m *RelayRateChangeMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RelayRateChange
+		)
+		m.oldValue = func(ctx context.Context) (*RelayRateChange, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RelayRateChange.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRelayRateChange sets the old RelayRateChange of the mutation.
+func withRelayRateChange(node *RelayRateChange) relayratechangeOption {
+	return func(m *RelayRateChangeMutation) {
+		m.oldValue = func(context.Context) (*RelayRateChange, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RelayRateChangeMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RelayRateChangeMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RelayRateChangeMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RelayRateChangeMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RelayRateChange.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetMonitorID sets the "monitor_id" field.
+func (m *RelayRateChangeMutation) SetMonitorID(i int64) {
+	m.monitor = &i
+}
+
+// MonitorID returns the value of the "monitor_id" field in the mutation.
+func (m *RelayRateChangeMutation) MonitorID() (r int64, exists bool) {
+	v := m.monitor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMonitorID returns the old "monitor_id" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldMonitorID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMonitorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMonitorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMonitorID: %w", err)
+	}
+	return oldValue.MonitorID, nil
+}
+
+// ResetMonitorID resets all changes to the "monitor_id" field.
+func (m *RelayRateChangeMutation) ResetMonitorID() {
+	m.monitor = nil
+}
+
+// SetSite sets the "site" field.
+func (m *RelayRateChangeMutation) SetSite(s string) {
+	m.site = &s
+}
+
+// Site returns the value of the "site" field in the mutation.
+func (m *RelayRateChangeMutation) Site() (r string, exists bool) {
+	v := m.site
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSite returns the old "site" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldSite(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSite is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSite requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSite: %w", err)
+	}
+	return oldValue.Site, nil
+}
+
+// ResetSite resets all changes to the "site" field.
+func (m *RelayRateChangeMutation) ResetSite() {
+	m.site = nil
+}
+
+// SetSystem sets the "system" field.
+func (m *RelayRateChangeMutation) SetSystem(s string) {
+	m.system = &s
+}
+
+// System returns the value of the "system" field in the mutation.
+func (m *RelayRateChangeMutation) System() (r string, exists bool) {
+	v := m.system
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSystem returns the old "system" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldSystem(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSystem is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSystem requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSystem: %w", err)
+	}
+	return oldValue.System, nil
+}
+
+// ResetSystem resets all changes to the "system" field.
+func (m *RelayRateChangeMutation) ResetSystem() {
+	m.system = nil
+}
+
+// SetVendor sets the "vendor" field.
+func (m *RelayRateChangeMutation) SetVendor(s string) {
+	m.vendor = &s
+}
+
+// Vendor returns the value of the "vendor" field in the mutation.
+func (m *RelayRateChangeMutation) Vendor() (r string, exists bool) {
+	v := m.vendor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldVendor returns the old "vendor" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldVendor(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldVendor is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldVendor requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldVendor: %w", err)
+	}
+	return oldValue.Vendor, nil
+}
+
+// ClearVendor clears the value of the "vendor" field.
+func (m *RelayRateChangeMutation) ClearVendor() {
+	m.vendor = nil
+	m.clearedFields[relayratechange.FieldVendor] = struct{}{}
+}
+
+// VendorCleared returns if the "vendor" field was cleared in this mutation.
+func (m *RelayRateChangeMutation) VendorCleared() bool {
+	_, ok := m.clearedFields[relayratechange.FieldVendor]
+	return ok
+}
+
+// ResetVendor resets all changes to the "vendor" field.
+func (m *RelayRateChangeMutation) ResetVendor() {
+	m.vendor = nil
+	delete(m.clearedFields, relayratechange.FieldVendor)
+}
+
+// SetGroupName sets the "group_name" field.
+func (m *RelayRateChangeMutation) SetGroupName(s string) {
+	m.group_name = &s
+}
+
+// GroupName returns the value of the "group_name" field in the mutation.
+func (m *RelayRateChangeMutation) GroupName() (r string, exists bool) {
+	v := m.group_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupName returns the old "group_name" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldGroupName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupName: %w", err)
+	}
+	return oldValue.GroupName, nil
+}
+
+// ResetGroupName resets all changes to the "group_name" field.
+func (m *RelayRateChangeMutation) ResetGroupName() {
+	m.group_name = nil
+}
+
+// SetOldRate sets the "old_rate" field.
+func (m *RelayRateChangeMutation) SetOldRate(f float64) {
+	m.old_rate = &f
+	m.addold_rate = nil
+}
+
+// OldRate returns the value of the "old_rate" field in the mutation.
+func (m *RelayRateChangeMutation) OldRate() (r float64, exists bool) {
+	v := m.old_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOldRate returns the old "old_rate" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldOldRate(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOldRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOldRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOldRate: %w", err)
+	}
+	return oldValue.OldRate, nil
+}
+
+// AddOldRate adds f to the "old_rate" field.
+func (m *RelayRateChangeMutation) AddOldRate(f float64) {
+	if m.addold_rate != nil {
+		*m.addold_rate += f
+	} else {
+		m.addold_rate = &f
+	}
+}
+
+// AddedOldRate returns the value that was added to the "old_rate" field in this mutation.
+func (m *RelayRateChangeMutation) AddedOldRate() (r float64, exists bool) {
+	v := m.addold_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOldRate resets all changes to the "old_rate" field.
+func (m *RelayRateChangeMutation) ResetOldRate() {
+	m.old_rate = nil
+	m.addold_rate = nil
+}
+
+// SetNewRate sets the "new_rate" field.
+func (m *RelayRateChangeMutation) SetNewRate(f float64) {
+	m.new_rate = &f
+	m.addnew_rate = nil
+}
+
+// NewRate returns the value of the "new_rate" field in the mutation.
+func (m *RelayRateChangeMutation) NewRate() (r float64, exists bool) {
+	v := m.new_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNewRate returns the old "new_rate" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldNewRate(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNewRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNewRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNewRate: %w", err)
+	}
+	return oldValue.NewRate, nil
+}
+
+// AddNewRate adds f to the "new_rate" field.
+func (m *RelayRateChangeMutation) AddNewRate(f float64) {
+	if m.addnew_rate != nil {
+		*m.addnew_rate += f
+	} else {
+		m.addnew_rate = &f
+	}
+}
+
+// AddedNewRate returns the value that was added to the "new_rate" field in this mutation.
+func (m *RelayRateChangeMutation) AddedNewRate() (r float64, exists bool) {
+	v := m.addnew_rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetNewRate resets all changes to the "new_rate" field.
+func (m *RelayRateChangeMutation) ResetNewRate() {
+	m.new_rate = nil
+	m.addnew_rate = nil
+}
+
+// SetDirection sets the "direction" field.
+func (m *RelayRateChangeMutation) SetDirection(r relayratechange.Direction) {
+	m.direction = &r
+}
+
+// Direction returns the value of the "direction" field in the mutation.
+func (m *RelayRateChangeMutation) Direction() (r relayratechange.Direction, exists bool) {
+	v := m.direction
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDirection returns the old "direction" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldDirection(ctx context.Context) (v relayratechange.Direction, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDirection is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDirection requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDirection: %w", err)
+	}
+	return oldValue.Direction, nil
+}
+
+// ResetDirection resets all changes to the "direction" field.
+func (m *RelayRateChangeMutation) ResetDirection() {
+	m.direction = nil
+}
+
+// SetContent sets the "content" field.
+func (m *RelayRateChangeMutation) SetContent(s string) {
+	m.content = &s
+}
+
+// Content returns the value of the "content" field in the mutation.
+func (m *RelayRateChangeMutation) Content() (r string, exists bool) {
+	v := m.content
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldContent returns the old "content" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldContent(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldContent is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldContent requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldContent: %w", err)
+	}
+	return oldValue.Content, nil
+}
+
+// ClearContent clears the value of the "content" field.
+func (m *RelayRateChangeMutation) ClearContent() {
+	m.content = nil
+	m.clearedFields[relayratechange.FieldContent] = struct{}{}
+}
+
+// ContentCleared returns if the "content" field was cleared in this mutation.
+func (m *RelayRateChangeMutation) ContentCleared() bool {
+	_, ok := m.clearedFields[relayratechange.FieldContent]
+	return ok
+}
+
+// ResetContent resets all changes to the "content" field.
+func (m *RelayRateChangeMutation) ResetContent() {
+	m.content = nil
+	delete(m.clearedFields, relayratechange.FieldContent)
+}
+
+// SetDetectedAt sets the "detected_at" field.
+func (m *RelayRateChangeMutation) SetDetectedAt(t time.Time) {
+	m.detected_at = &t
+}
+
+// DetectedAt returns the value of the "detected_at" field in the mutation.
+func (m *RelayRateChangeMutation) DetectedAt() (r time.Time, exists bool) {
+	v := m.detected_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDetectedAt returns the old "detected_at" field's value of the RelayRateChange entity.
+// If the RelayRateChange object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateChangeMutation) OldDetectedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDetectedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDetectedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDetectedAt: %w", err)
+	}
+	return oldValue.DetectedAt, nil
+}
+
+// ResetDetectedAt resets all changes to the "detected_at" field.
+func (m *RelayRateChangeMutation) ResetDetectedAt() {
+	m.detected_at = nil
+}
+
+// ClearMonitor clears the "monitor" edge to the RelayMonitor entity.
+func (m *RelayRateChangeMutation) ClearMonitor() {
+	m.clearedmonitor = true
+	m.clearedFields[relayratechange.FieldMonitorID] = struct{}{}
+}
+
+// MonitorCleared reports if the "monitor" edge to the RelayMonitor entity was cleared.
+func (m *RelayRateChangeMutation) MonitorCleared() bool {
+	return m.clearedmonitor
+}
+
+// MonitorIDs returns the "monitor" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// MonitorID instead. It exists only for internal usage by the builders.
+func (m *RelayRateChangeMutation) MonitorIDs() (ids []int64) {
+	if id := m.monitor; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetMonitor resets all changes to the "monitor" edge.
+func (m *RelayRateChangeMutation) ResetMonitor() {
+	m.monitor = nil
+	m.clearedmonitor = false
+}
+
+// Where appends a list predicates to the RelayRateChangeMutation builder.
+func (m *RelayRateChangeMutation) Where(ps ...predicate.RelayRateChange) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RelayRateChangeMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RelayRateChangeMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RelayRateChange, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RelayRateChangeMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RelayRateChangeMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RelayRateChange).
+func (m *RelayRateChangeMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RelayRateChangeMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.monitor != nil {
+		fields = append(fields, relayratechange.FieldMonitorID)
+	}
+	if m.site != nil {
+		fields = append(fields, relayratechange.FieldSite)
+	}
+	if m.system != nil {
+		fields = append(fields, relayratechange.FieldSystem)
+	}
+	if m.vendor != nil {
+		fields = append(fields, relayratechange.FieldVendor)
+	}
+	if m.group_name != nil {
+		fields = append(fields, relayratechange.FieldGroupName)
+	}
+	if m.old_rate != nil {
+		fields = append(fields, relayratechange.FieldOldRate)
+	}
+	if m.new_rate != nil {
+		fields = append(fields, relayratechange.FieldNewRate)
+	}
+	if m.direction != nil {
+		fields = append(fields, relayratechange.FieldDirection)
+	}
+	if m.content != nil {
+		fields = append(fields, relayratechange.FieldContent)
+	}
+	if m.detected_at != nil {
+		fields = append(fields, relayratechange.FieldDetectedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RelayRateChangeMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case relayratechange.FieldMonitorID:
+		return m.MonitorID()
+	case relayratechange.FieldSite:
+		return m.Site()
+	case relayratechange.FieldSystem:
+		return m.System()
+	case relayratechange.FieldVendor:
+		return m.Vendor()
+	case relayratechange.FieldGroupName:
+		return m.GroupName()
+	case relayratechange.FieldOldRate:
+		return m.OldRate()
+	case relayratechange.FieldNewRate:
+		return m.NewRate()
+	case relayratechange.FieldDirection:
+		return m.Direction()
+	case relayratechange.FieldContent:
+		return m.Content()
+	case relayratechange.FieldDetectedAt:
+		return m.DetectedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RelayRateChangeMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case relayratechange.FieldMonitorID:
+		return m.OldMonitorID(ctx)
+	case relayratechange.FieldSite:
+		return m.OldSite(ctx)
+	case relayratechange.FieldSystem:
+		return m.OldSystem(ctx)
+	case relayratechange.FieldVendor:
+		return m.OldVendor(ctx)
+	case relayratechange.FieldGroupName:
+		return m.OldGroupName(ctx)
+	case relayratechange.FieldOldRate:
+		return m.OldOldRate(ctx)
+	case relayratechange.FieldNewRate:
+		return m.OldNewRate(ctx)
+	case relayratechange.FieldDirection:
+		return m.OldDirection(ctx)
+	case relayratechange.FieldContent:
+		return m.OldContent(ctx)
+	case relayratechange.FieldDetectedAt:
+		return m.OldDetectedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RelayRateChange field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayRateChangeMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case relayratechange.FieldMonitorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMonitorID(v)
+		return nil
+	case relayratechange.FieldSite:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSite(v)
+		return nil
+	case relayratechange.FieldSystem:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSystem(v)
+		return nil
+	case relayratechange.FieldVendor:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetVendor(v)
+		return nil
+	case relayratechange.FieldGroupName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupName(v)
+		return nil
+	case relayratechange.FieldOldRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOldRate(v)
+		return nil
+	case relayratechange.FieldNewRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNewRate(v)
+		return nil
+	case relayratechange.FieldDirection:
+		v, ok := value.(relayratechange.Direction)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDirection(v)
+		return nil
+	case relayratechange.FieldContent:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetContent(v)
+		return nil
+	case relayratechange.FieldDetectedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDetectedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RelayRateChangeMutation) AddedFields() []string {
+	var fields []string
+	if m.addold_rate != nil {
+		fields = append(fields, relayratechange.FieldOldRate)
+	}
+	if m.addnew_rate != nil {
+		fields = append(fields, relayratechange.FieldNewRate)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RelayRateChangeMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case relayratechange.FieldOldRate:
+		return m.AddedOldRate()
+	case relayratechange.FieldNewRate:
+		return m.AddedNewRate()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayRateChangeMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case relayratechange.FieldOldRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOldRate(v)
+		return nil
+	case relayratechange.FieldNewRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNewRate(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RelayRateChangeMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(relayratechange.FieldVendor) {
+		fields = append(fields, relayratechange.FieldVendor)
+	}
+	if m.FieldCleared(relayratechange.FieldContent) {
+		fields = append(fields, relayratechange.FieldContent)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RelayRateChangeMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RelayRateChangeMutation) ClearField(name string) error {
+	switch name {
+	case relayratechange.FieldVendor:
+		m.ClearVendor()
+		return nil
+	case relayratechange.FieldContent:
+		m.ClearContent()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RelayRateChangeMutation) ResetField(name string) error {
+	switch name {
+	case relayratechange.FieldMonitorID:
+		m.ResetMonitorID()
+		return nil
+	case relayratechange.FieldSite:
+		m.ResetSite()
+		return nil
+	case relayratechange.FieldSystem:
+		m.ResetSystem()
+		return nil
+	case relayratechange.FieldVendor:
+		m.ResetVendor()
+		return nil
+	case relayratechange.FieldGroupName:
+		m.ResetGroupName()
+		return nil
+	case relayratechange.FieldOldRate:
+		m.ResetOldRate()
+		return nil
+	case relayratechange.FieldNewRate:
+		m.ResetNewRate()
+		return nil
+	case relayratechange.FieldDirection:
+		m.ResetDirection()
+		return nil
+	case relayratechange.FieldContent:
+		m.ResetContent()
+		return nil
+	case relayratechange.FieldDetectedAt:
+		m.ResetDetectedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RelayRateChangeMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.monitor != nil {
+		edges = append(edges, relayratechange.EdgeMonitor)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RelayRateChangeMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case relayratechange.EdgeMonitor:
+		if id := m.monitor; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RelayRateChangeMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RelayRateChangeMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RelayRateChangeMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedmonitor {
+		edges = append(edges, relayratechange.EdgeMonitor)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RelayRateChangeMutation) EdgeCleared(name string) bool {
+	switch name {
+	case relayratechange.EdgeMonitor:
+		return m.clearedmonitor
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RelayRateChangeMutation) ClearEdge(name string) error {
+	switch name {
+	case relayratechange.EdgeMonitor:
+		m.ClearMonitor()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RelayRateChangeMutation) ResetEdge(name string) error {
+	switch name {
+	case relayratechange.EdgeMonitor:
+		m.ResetMonitor()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateChange edge %s", name)
+}
+
+// RelayRateSnapshotMutation represents an operation that mutates the RelayRateSnapshot nodes in the graph.
+type RelayRateSnapshotMutation struct {
+	config
+	op             Op
+	typ            string
+	id             *int64
+	group_name     *string
+	rate           *float64
+	addrate        *float64
+	updated_at     *time.Time
+	clearedFields  map[string]struct{}
+	monitor        *int64
+	clearedmonitor bool
+	done           bool
+	oldValue       func(context.Context) (*RelayRateSnapshot, error)
+	predicates     []predicate.RelayRateSnapshot
+}
+
+var _ ent.Mutation = (*RelayRateSnapshotMutation)(nil)
+
+// relayratesnapshotOption allows management of the mutation configuration using functional options.
+type relayratesnapshotOption func(*RelayRateSnapshotMutation)
+
+// newRelayRateSnapshotMutation creates new mutation for the RelayRateSnapshot entity.
+func newRelayRateSnapshotMutation(c config, op Op, opts ...relayratesnapshotOption) *RelayRateSnapshotMutation {
+	m := &RelayRateSnapshotMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeRelayRateSnapshot,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withRelayRateSnapshotID sets the ID field of the mutation.
+func withRelayRateSnapshotID(id int64) relayratesnapshotOption {
+	return func(m *RelayRateSnapshotMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *RelayRateSnapshot
+		)
+		m.oldValue = func(ctx context.Context) (*RelayRateSnapshot, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().RelayRateSnapshot.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withRelayRateSnapshot sets the old RelayRateSnapshot of the mutation.
+func withRelayRateSnapshot(node *RelayRateSnapshot) relayratesnapshotOption {
+	return func(m *RelayRateSnapshotMutation) {
+		m.oldValue = func(context.Context) (*RelayRateSnapshot, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m RelayRateSnapshotMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m RelayRateSnapshotMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *RelayRateSnapshotMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *RelayRateSnapshotMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().RelayRateSnapshot.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetMonitorID sets the "monitor_id" field.
+func (m *RelayRateSnapshotMutation) SetMonitorID(i int64) {
+	m.monitor = &i
+}
+
+// MonitorID returns the value of the "monitor_id" field in the mutation.
+func (m *RelayRateSnapshotMutation) MonitorID() (r int64, exists bool) {
+	v := m.monitor
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMonitorID returns the old "monitor_id" field's value of the RelayRateSnapshot entity.
+// If the RelayRateSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateSnapshotMutation) OldMonitorID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMonitorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMonitorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMonitorID: %w", err)
+	}
+	return oldValue.MonitorID, nil
+}
+
+// ResetMonitorID resets all changes to the "monitor_id" field.
+func (m *RelayRateSnapshotMutation) ResetMonitorID() {
+	m.monitor = nil
+}
+
+// SetGroupName sets the "group_name" field.
+func (m *RelayRateSnapshotMutation) SetGroupName(s string) {
+	m.group_name = &s
+}
+
+// GroupName returns the value of the "group_name" field in the mutation.
+func (m *RelayRateSnapshotMutation) GroupName() (r string, exists bool) {
+	v := m.group_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldGroupName returns the old "group_name" field's value of the RelayRateSnapshot entity.
+// If the RelayRateSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateSnapshotMutation) OldGroupName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldGroupName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldGroupName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldGroupName: %w", err)
+	}
+	return oldValue.GroupName, nil
+}
+
+// ResetGroupName resets all changes to the "group_name" field.
+func (m *RelayRateSnapshotMutation) ResetGroupName() {
+	m.group_name = nil
+}
+
+// SetRate sets the "rate" field.
+func (m *RelayRateSnapshotMutation) SetRate(f float64) {
+	m.rate = &f
+	m.addrate = nil
+}
+
+// Rate returns the value of the "rate" field in the mutation.
+func (m *RelayRateSnapshotMutation) Rate() (r float64, exists bool) {
+	v := m.rate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldRate returns the old "rate" field's value of the RelayRateSnapshot entity.
+// If the RelayRateSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateSnapshotMutation) OldRate(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldRate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldRate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldRate: %w", err)
+	}
+	return oldValue.Rate, nil
+}
+
+// AddRate adds f to the "rate" field.
+func (m *RelayRateSnapshotMutation) AddRate(f float64) {
+	if m.addrate != nil {
+		*m.addrate += f
+	} else {
+		m.addrate = &f
+	}
+}
+
+// AddedRate returns the value that was added to the "rate" field in this mutation.
+func (m *RelayRateSnapshotMutation) AddedRate() (r float64, exists bool) {
+	v := m.addrate
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetRate resets all changes to the "rate" field.
+func (m *RelayRateSnapshotMutation) ResetRate() {
+	m.rate = nil
+	m.addrate = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *RelayRateSnapshotMutation) SetUpdatedAt(t time.Time) {
+	m.updated_at = &t
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *RelayRateSnapshotMutation) UpdatedAt() (r time.Time, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the RelayRateSnapshot entity.
+// If the RelayRateSnapshot object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayRateSnapshotMutation) OldUpdatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *RelayRateSnapshotMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// ClearMonitor clears the "monitor" edge to the RelayMonitor entity.
+func (m *RelayRateSnapshotMutation) ClearMonitor() {
+	m.clearedmonitor = true
+	m.clearedFields[relayratesnapshot.FieldMonitorID] = struct{}{}
+}
+
+// MonitorCleared reports if the "monitor" edge to the RelayMonitor entity was cleared.
+func (m *RelayRateSnapshotMutation) MonitorCleared() bool {
+	return m.clearedmonitor
+}
+
+// MonitorIDs returns the "monitor" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// MonitorID instead. It exists only for internal usage by the builders.
+func (m *RelayRateSnapshotMutation) MonitorIDs() (ids []int64) {
+	if id := m.monitor; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetMonitor resets all changes to the "monitor" edge.
+func (m *RelayRateSnapshotMutation) ResetMonitor() {
+	m.monitor = nil
+	m.clearedmonitor = false
+}
+
+// Where appends a list predicates to the RelayRateSnapshotMutation builder.
+func (m *RelayRateSnapshotMutation) Where(ps ...predicate.RelayRateSnapshot) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the RelayRateSnapshotMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *RelayRateSnapshotMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.RelayRateSnapshot, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *RelayRateSnapshotMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *RelayRateSnapshotMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (RelayRateSnapshot).
+func (m *RelayRateSnapshotMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *RelayRateSnapshotMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.monitor != nil {
+		fields = append(fields, relayratesnapshot.FieldMonitorID)
+	}
+	if m.group_name != nil {
+		fields = append(fields, relayratesnapshot.FieldGroupName)
+	}
+	if m.rate != nil {
+		fields = append(fields, relayratesnapshot.FieldRate)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, relayratesnapshot.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *RelayRateSnapshotMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case relayratesnapshot.FieldMonitorID:
+		return m.MonitorID()
+	case relayratesnapshot.FieldGroupName:
+		return m.GroupName()
+	case relayratesnapshot.FieldRate:
+		return m.Rate()
+	case relayratesnapshot.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *RelayRateSnapshotMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case relayratesnapshot.FieldMonitorID:
+		return m.OldMonitorID(ctx)
+	case relayratesnapshot.FieldGroupName:
+		return m.OldGroupName(ctx)
+	case relayratesnapshot.FieldRate:
+		return m.OldRate(ctx)
+	case relayratesnapshot.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown RelayRateSnapshot field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayRateSnapshotMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case relayratesnapshot.FieldMonitorID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMonitorID(v)
+		return nil
+	case relayratesnapshot.FieldGroupName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetGroupName(v)
+		return nil
+	case relayratesnapshot.FieldRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetRate(v)
+		return nil
+	case relayratesnapshot.FieldUpdatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateSnapshot field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *RelayRateSnapshotMutation) AddedFields() []string {
+	var fields []string
+	if m.addrate != nil {
+		fields = append(fields, relayratesnapshot.FieldRate)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *RelayRateSnapshotMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case relayratesnapshot.FieldRate:
+		return m.AddedRate()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *RelayRateSnapshotMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case relayratesnapshot.FieldRate:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddRate(v)
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateSnapshot numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *RelayRateSnapshotMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *RelayRateSnapshotMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *RelayRateSnapshotMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown RelayRateSnapshot nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *RelayRateSnapshotMutation) ResetField(name string) error {
+	switch name {
+	case relayratesnapshot.FieldMonitorID:
+		m.ResetMonitorID()
+		return nil
+	case relayratesnapshot.FieldGroupName:
+		m.ResetGroupName()
+		return nil
+	case relayratesnapshot.FieldRate:
+		m.ResetRate()
+		return nil
+	case relayratesnapshot.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateSnapshot field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *RelayRateSnapshotMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.monitor != nil {
+		edges = append(edges, relayratesnapshot.EdgeMonitor)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *RelayRateSnapshotMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case relayratesnapshot.EdgeMonitor:
+		if id := m.monitor; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *RelayRateSnapshotMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *RelayRateSnapshotMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *RelayRateSnapshotMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedmonitor {
+		edges = append(edges, relayratesnapshot.EdgeMonitor)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *RelayRateSnapshotMutation) EdgeCleared(name string) bool {
+	switch name {
+	case relayratesnapshot.EdgeMonitor:
+		return m.clearedmonitor
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *RelayRateSnapshotMutation) ClearEdge(name string) error {
+	switch name {
+	case relayratesnapshot.EdgeMonitor:
+		m.ClearMonitor()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateSnapshot unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *RelayRateSnapshotMutation) ResetEdge(name string) error {
+	switch name {
+	case relayratesnapshot.EdgeMonitor:
+		m.ResetMonitor()
+		return nil
+	}
+	return fmt.Errorf("unknown RelayRateSnapshot edge %s", name)
 }
 
 // SecuritySecretMutation represents an operation that mutates the SecuritySecret nodes in the graph.

@@ -92,6 +92,9 @@ func RegisterAdminRoutes(
 		// 渠道监控
 		registerChannelMonitorRoutes(admin, h)
 
+		// 中转站监控
+		registerRelayMonitorRoutes(admin, h)
+
 		// 风控中心
 		registerContentModerationRoutes(admin, h)
 
@@ -626,6 +629,24 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		templates.DELETE("/:id", h.Admin.ChannelMonitorTemplate.Delete)
 		templates.GET("/:id/monitors", h.Admin.ChannelMonitorTemplate.AssociatedMonitors)
 		templates.POST("/:id/apply", h.Admin.ChannelMonitorTemplate.Apply)
+	}
+}
+
+func registerRelayMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	monitors := admin.Group("/relay-monitors")
+	{
+		// 静态段路由放在 :id 之前，gin 会优先匹配静态段。
+		monitors.GET("/changes", h.Admin.RelayMonitor.Changes)
+		monitors.GET("/summary", h.Admin.RelayMonitor.Summary)
+		monitors.POST("/probe-all", h.Admin.RelayMonitor.ProbeAll)
+		monitors.POST("/fetch-groups", h.Admin.RelayMonitor.FetchGroups)
+
+		monitors.GET("", h.Admin.RelayMonitor.List)
+		monitors.POST("", h.Admin.RelayMonitor.Create)
+		monitors.GET("/:id", h.Admin.RelayMonitor.Get)
+		monitors.PUT("/:id", h.Admin.RelayMonitor.Update)
+		monitors.DELETE("/:id", h.Admin.RelayMonitor.Delete)
+		monitors.POST("/:id/probe", h.Admin.RelayMonitor.Probe)
 	}
 }
 

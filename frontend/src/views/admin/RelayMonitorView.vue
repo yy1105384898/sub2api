@@ -135,16 +135,17 @@
             >
               <!-- 站点一级标题行 -->
               <tr :class="siteTone(siteIndex).header">
-                <td colspan="5" class="px-4 py-2.5">
-                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span class="text-base font-bold text-gray-900 dark:text-white">{{ site.site }}</span>
-                    <span class="rounded bg-white/70 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.system }}</span>
-                    <span class="rounded bg-white/70 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.vendor || t('admin.relayMonitor.noVendor') }}</span>
-                    <span class="ml-auto flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-gray-300">
-                      <span>{{ site.rows.length }} {{ t('admin.relayMonitor.groupsUnit') }}</span>
-                      <span class="text-red-600 dark:text-red-400">{{ t('admin.relayMonitor.up') }} {{ site.upCount }}</span>
-                      <span class="text-green-600 dark:text-green-400">{{ t('admin.relayMonitor.down') }} {{ site.downCount }}</span>
-                      <span>{{ t('admin.relayMonitor.latestChange') }}: {{ site.lastChangedAt ? formatTime(site.lastChangedAt) : t('admin.relayMonitor.noChange') }}</span>
+                <td colspan="5" class="px-4 py-2">
+                  <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                    <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" :class="siteTone(siteIndex).dot"></span>
+                    <span class="text-[15px] font-bold text-gray-900 dark:text-white">{{ site.site }}</span>
+                    <span class="rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.system }}</span>
+                    <span class="rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.vendor || t('admin.relayMonitor.noVendor') }}</span>
+                    <span class="ml-auto flex flex-wrap items-center gap-1.5 text-[11px]">
+                      <span class="rounded-full bg-white/80 px-2 py-0.5 text-gray-600 dark:bg-dark-950/50 dark:text-gray-300">{{ site.rows.length }} {{ t('admin.relayMonitor.groupsUnit') }}</span>
+                      <span v-if="site.upCount" class="rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300">{{ t('admin.relayMonitor.up') }} {{ site.upCount }}</span>
+                      <span v-if="site.downCount" class="rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-700 dark:bg-green-900/40 dark:text-green-300">{{ t('admin.relayMonitor.down') }} {{ site.downCount }}</span>
+                      <span v-if="site.lastChangedAt" class="text-gray-500 dark:text-gray-400">· {{ formatTime(site.lastChangedAt) }}</span>
                     </span>
                   </div>
                 </td>
@@ -527,6 +528,7 @@ interface OverviewSite {
 interface SiteTone {
   header: string
   row: string
+  dot: string
 }
 
 const PLAN_OTHER: PlanTier = {
@@ -551,12 +553,12 @@ function planTier(group: string): PlanTier {
 // 每个站点一个色系：标题行用较深的 header 背景，分组行用同色系的浅 row 背景，
 // 相邻站点颜色不同，便于区分「哪些分组属于哪个站点」。
 const SITE_TONES: SiteTone[] = [
-  { header: 'bg-sky-100 dark:bg-sky-900/40', row: 'bg-sky-50/50 dark:bg-sky-950/15' },
-  { header: 'bg-violet-100 dark:bg-violet-900/40', row: 'bg-violet-50/50 dark:bg-violet-950/15' },
-  { header: 'bg-emerald-100 dark:bg-emerald-900/40', row: 'bg-emerald-50/50 dark:bg-emerald-950/15' },
-  { header: 'bg-amber-100 dark:bg-amber-900/40', row: 'bg-amber-50/50 dark:bg-amber-950/15' },
-  { header: 'bg-rose-100 dark:bg-rose-900/40', row: 'bg-rose-50/50 dark:bg-rose-950/15' },
-  { header: 'bg-cyan-100 dark:bg-cyan-900/40', row: 'bg-cyan-50/50 dark:bg-cyan-950/15' },
+  { header: 'bg-sky-100 dark:bg-sky-900/40', row: 'bg-sky-50/50 dark:bg-sky-950/15', dot: 'bg-sky-500' },
+  { header: 'bg-violet-100 dark:bg-violet-900/40', row: 'bg-violet-50/50 dark:bg-violet-950/15', dot: 'bg-violet-500' },
+  { header: 'bg-emerald-100 dark:bg-emerald-900/40', row: 'bg-emerald-50/50 dark:bg-emerald-950/15', dot: 'bg-emerald-500' },
+  { header: 'bg-amber-100 dark:bg-amber-900/40', row: 'bg-amber-50/50 dark:bg-amber-950/15', dot: 'bg-amber-500' },
+  { header: 'bg-rose-100 dark:bg-rose-900/40', row: 'bg-rose-50/50 dark:bg-rose-950/15', dot: 'bg-rose-500' },
+  { header: 'bg-cyan-100 dark:bg-cyan-900/40', row: 'bg-cyan-50/50 dark:bg-cyan-950/15', dot: 'bg-cyan-500' },
 ]
 
 function siteTone(index: number): SiteTone {

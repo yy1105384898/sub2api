@@ -135,18 +135,30 @@
           </div>
         </div>
 
-        <div v-if="compareGroups.length" class="space-y-3">
-          <section
-            v-for="g in compareGroups"
-            :key="g.key"
+        <div v-if="compareByVendor.length" class="space-y-3">
+          <div
+            v-for="vs in compareByVendor"
+            :key="vs.vendor"
             class="overflow-hidden rounded-xl border border-gray-200 dark:border-dark-700"
           >
-            <div class="flex flex-wrap items-center gap-2 bg-gray-50 px-4 py-2.5 dark:bg-dark-800">
-              <span class="rounded bg-white px-2 py-0.5 text-xs font-semibold text-gray-700 shadow-sm dark:bg-dark-900 dark:text-gray-200">{{ g.vendor }}</span>
-              <span class="rounded px-2 py-0.5 text-xs font-medium" :class="g.tier.cls">{{ g.tier.label }}</span>
-              <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ g.rows.length }} {{ t('admin.relayMonitor.quotesUnit') }}</span>
-            </div>
-            <table class="min-w-full text-sm">
+            <button
+              type="button"
+              class="flex w-full items-center gap-2 bg-gray-100 px-4 py-3 text-left transition-colors hover:bg-gray-200/70 dark:bg-dark-800 dark:hover:bg-dark-700"
+              @click="toggleVendor(vs.vendor)"
+            >
+              <svg class="h-4 w-4 flex-shrink-0 text-gray-400 transition-transform" :class="isVendorCollapsed(vs.vendor) ? '-rotate-90' : ''" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" />
+              </svg>
+              <span class="text-sm font-bold text-gray-900 dark:text-white">{{ vs.vendor }}</span>
+              <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ vs.buckets.length }} {{ t('admin.relayMonitor.bucketsUnit') }}</span>
+            </button>
+            <div v-show="!isVendorCollapsed(vs.vendor)" class="divide-y divide-gray-100 dark:divide-dark-700">
+              <div v-for="g in vs.buckets" :key="g.key">
+                <div class="flex flex-wrap items-center gap-2 bg-gray-50/70 px-4 py-2 dark:bg-dark-800/40">
+                  <span class="rounded px-2 py-0.5 text-xs font-medium" :class="g.tier.cls">{{ g.tier.label }}</span>
+                  <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ g.rows.length }} {{ t('admin.relayMonitor.quotesUnit') }}</span>
+                </div>
+                <table class="min-w-full text-sm">
               <thead>
                 <tr class="border-b border-gray-100 text-left text-[11px] text-gray-400 dark:border-dark-700/60">
                   <th class="w-12 px-3 py-2 font-medium">#</th>
@@ -198,8 +210,10 @@
                   <td class="whitespace-nowrap px-3 py-2.5 text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
                 </tr>
               </tbody>
-            </table>
-          </section>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div v-else-if="!overviewLoading" class="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-10 text-center text-gray-400 dark:border-dark-600 dark:bg-dark-800">
@@ -856,6 +870,41 @@ const compareGroups = computed<CompareGroup[]>(() => {
   return groups
 })
 
+// 比价二级分组：按厂商归类，厂商下是各套餐档位（compareGroups 已按厂商+档位排序）。
+interface VendorSection {
+  vendor: string
+  buckets: CompareGroup[]
+}
+const compareByVendor = computed<VendorSection[]>(() => {
+  const map = new Map<string, CompareGroup[]>()
+  for (const g of compareGroups.value) {
+    const arr = map.get(g.vendor)
+    if (arr) arr.push(g)
+    else map.set(g.vendor, [g])
+  }
+  return Array.from(map.entries()).map(([vendor, buckets]) => ({ vendor, buckets }))
+})
+
+// 厂商折叠状态（localStorage 持久化）。
+const COLLAPSE_KEY = 'relay_collapsed_vendors'
+const collapsedVendors = ref<Set<string>>(new Set())
+function loadCollapsed() {
+  try {
+    const raw = localStorage.getItem(COLLAPSE_KEY)
+    if (raw) collapsedVendors.value = new Set(JSON.parse(raw) as string[])
+  } catch { /* ignore */ }
+}
+function isVendorCollapsed(v: string): boolean {
+  return collapsedVendors.value.has(v)
+}
+function toggleVendor(v: string) {
+  const next = new Set(collapsedVendors.value)
+  if (next.has(v)) next.delete(v)
+  else next.add(v)
+  collapsedVendors.value = next
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...next])) } catch { /* ignore */ }
+}
+
 // 倍率对比条宽度（相对组内最高倍率；越便宜越短）。
 function rateBarWidth(rate: number, maxRate: number): string {
   if (!maxRate || maxRate <= 0) return '6%'
@@ -1191,6 +1240,7 @@ async function doDelete() {
 
 onMounted(() => {
   loadFavorites()
+  loadCollapsed()
   loadOverview()
   loadChanges()
   loadSummary()

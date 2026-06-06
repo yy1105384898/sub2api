@@ -84,6 +84,20 @@ func (_c *RelayMonitorCreate) SetNillableVendor(v *string) *RelayMonitorCreate {
 	return _c
 }
 
+// SetAuthAccount sets the "auth_account" field.
+func (_c *RelayMonitorCreate) SetAuthAccount(v string) *RelayMonitorCreate {
+	_c.mutation.SetAuthAccount(v)
+	return _c
+}
+
+// SetNillableAuthAccount sets the "auth_account" field if the given value is not nil.
+func (_c *RelayMonitorCreate) SetNillableAuthAccount(v *string) *RelayMonitorCreate {
+	if v != nil {
+		_c.SetAuthAccount(*v)
+	}
+	return _c
+}
+
 // SetCredentialEncrypted sets the "credential_encrypted" field.
 func (_c *RelayMonitorCreate) SetCredentialEncrypted(v string) *RelayMonitorCreate {
 	_c.mutation.SetCredentialEncrypted(v)
@@ -243,6 +257,10 @@ func (_c *RelayMonitorCreate) defaults() {
 		v := relaymonitor.DefaultVendor
 		_c.mutation.SetVendor(v)
 	}
+	if _, ok := _c.mutation.AuthAccount(); !ok {
+		v := relaymonitor.DefaultAuthAccount
+		_c.mutation.SetAuthAccount(v)
+	}
 	if _, ok := _c.mutation.CredentialEncrypted(); !ok {
 		v := relaymonitor.DefaultCredentialEncrypted
 		_c.mutation.SetCredentialEncrypted(v)
@@ -300,6 +318,11 @@ func (_c *RelayMonitorCreate) check() error {
 	if v, ok := _c.mutation.Vendor(); ok {
 		if err := relaymonitor.VendorValidator(v); err != nil {
 			return &ValidationError{Name: "vendor", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.vendor": %w`, err)}
+		}
+	}
+	if v, ok := _c.mutation.AuthAccount(); ok {
+		if err := relaymonitor.AuthAccountValidator(v); err != nil {
+			return &ValidationError{Name: "auth_account", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.auth_account": %w`, err)}
 		}
 	}
 	if _, ok := _c.mutation.WatchedGroups(); !ok {
@@ -374,6 +397,10 @@ func (_c *RelayMonitorCreate) createSpec() (*RelayMonitor, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Vendor(); ok {
 		_spec.SetField(relaymonitor.FieldVendor, field.TypeString, value)
 		_node.Vendor = value
+	}
+	if value, ok := _c.mutation.AuthAccount(); ok {
+		_spec.SetField(relaymonitor.FieldAuthAccount, field.TypeString, value)
+		_node.AuthAccount = value
 	}
 	if value, ok := _c.mutation.CredentialEncrypted(); ok {
 		_spec.SetField(relaymonitor.FieldCredentialEncrypted, field.TypeString, value)
@@ -550,6 +577,24 @@ func (u *RelayMonitorUpsert) UpdateVendor() *RelayMonitorUpsert {
 // ClearVendor clears the value of the "vendor" field.
 func (u *RelayMonitorUpsert) ClearVendor() *RelayMonitorUpsert {
 	u.SetNull(relaymonitor.FieldVendor)
+	return u
+}
+
+// SetAuthAccount sets the "auth_account" field.
+func (u *RelayMonitorUpsert) SetAuthAccount(v string) *RelayMonitorUpsert {
+	u.Set(relaymonitor.FieldAuthAccount, v)
+	return u
+}
+
+// UpdateAuthAccount sets the "auth_account" field to the value that was provided on create.
+func (u *RelayMonitorUpsert) UpdateAuthAccount() *RelayMonitorUpsert {
+	u.SetExcluded(relaymonitor.FieldAuthAccount)
+	return u
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (u *RelayMonitorUpsert) ClearAuthAccount() *RelayMonitorUpsert {
+	u.SetNull(relaymonitor.FieldAuthAccount)
 	return u
 }
 
@@ -786,6 +831,27 @@ func (u *RelayMonitorUpsertOne) UpdateVendor() *RelayMonitorUpsertOne {
 func (u *RelayMonitorUpsertOne) ClearVendor() *RelayMonitorUpsertOne {
 	return u.Update(func(s *RelayMonitorUpsert) {
 		s.ClearVendor()
+	})
+}
+
+// SetAuthAccount sets the "auth_account" field.
+func (u *RelayMonitorUpsertOne) SetAuthAccount(v string) *RelayMonitorUpsertOne {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.SetAuthAccount(v)
+	})
+}
+
+// UpdateAuthAccount sets the "auth_account" field to the value that was provided on create.
+func (u *RelayMonitorUpsertOne) UpdateAuthAccount() *RelayMonitorUpsertOne {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.UpdateAuthAccount()
+	})
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (u *RelayMonitorUpsertOne) ClearAuthAccount() *RelayMonitorUpsertOne {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.ClearAuthAccount()
 	})
 }
 
@@ -1207,6 +1273,27 @@ func (u *RelayMonitorUpsertBulk) UpdateVendor() *RelayMonitorUpsertBulk {
 func (u *RelayMonitorUpsertBulk) ClearVendor() *RelayMonitorUpsertBulk {
 	return u.Update(func(s *RelayMonitorUpsert) {
 		s.ClearVendor()
+	})
+}
+
+// SetAuthAccount sets the "auth_account" field.
+func (u *RelayMonitorUpsertBulk) SetAuthAccount(v string) *RelayMonitorUpsertBulk {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.SetAuthAccount(v)
+	})
+}
+
+// UpdateAuthAccount sets the "auth_account" field to the value that was provided on create.
+func (u *RelayMonitorUpsertBulk) UpdateAuthAccount() *RelayMonitorUpsertBulk {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.UpdateAuthAccount()
+	})
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (u *RelayMonitorUpsertBulk) ClearAuthAccount() *RelayMonitorUpsertBulk {
+	return u.Update(func(s *RelayMonitorUpsert) {
+		s.ClearAuthAccount()
 	})
 }
 

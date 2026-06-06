@@ -27,6 +27,8 @@ const (
 	FieldBaseURL = "base_url"
 	// FieldVendor holds the string denoting the vendor field in the database.
 	FieldVendor = "vendor"
+	// FieldAuthAccount holds the string denoting the auth_account field in the database.
+	FieldAuthAccount = "auth_account"
 	// FieldCredentialEncrypted holds the string denoting the credential_encrypted field in the database.
 	FieldCredentialEncrypted = "credential_encrypted"
 	// FieldWatchedGroups holds the string denoting the watched_groups field in the database.
@@ -72,6 +74,7 @@ var Columns = []string{
 	FieldSystem,
 	FieldBaseURL,
 	FieldVendor,
+	FieldAuthAccount,
 	FieldCredentialEncrypted,
 	FieldWatchedGroups,
 	FieldEnabled,
@@ -106,6 +109,10 @@ var (
 	DefaultVendor string
 	// VendorValidator is a validator for the "vendor" field. It is called by the builders before save.
 	VendorValidator func(string) error
+	// DefaultAuthAccount holds the default value on creation for the "auth_account" field.
+	DefaultAuthAccount string
+	// AuthAccountValidator is a validator for the "auth_account" field. It is called by the builders before save.
+	AuthAccountValidator func(string) error
 	// DefaultCredentialEncrypted holds the default value on creation for the "credential_encrypted" field.
 	DefaultCredentialEncrypted string
 	// DefaultWatchedGroups holds the default value on creation for the "watched_groups" field.
@@ -181,6 +188,11 @@ func ByBaseURL(opts ...sql.OrderTermOption) OrderOption {
 // ByVendor orders the results by the vendor field.
 func ByVendor(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldVendor, opts...).ToFunc()
+}
+
+// ByAuthAccount orders the results by the auth_account field.
+func ByAuthAccount(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAuthAccount, opts...).ToFunc()
 }
 
 // ByCredentialEncrypted orders the results by the credential_encrypted field.

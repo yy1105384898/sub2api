@@ -30,7 +30,9 @@ type RelayMonitor struct {
 	BaseURL string `json:"base_url,omitempty"`
 	// 厂商标签，如 OpenAI（仅展示用）
 	Vendor string `json:"vendor,omitempty"`
-	// AES-256-GCM 加密的访问凭证：sub2api 需要 Bearer token，newapi 可留空
+	// sub2api 登录账号（邮箱）；newapi 留空
+	AuthAccount string `json:"auth_account,omitempty"`
+	// AES-256-GCM 加密的访问凭证：sub2api 存登录密码，newapi 留空
 	CredentialEncrypted string `json:"-"`
 	// 需要监控的分组名列表；为空表示尚未选择，不探测任何分组
 	WatchedGroups []string `json:"watched_groups,omitempty"`
@@ -90,7 +92,7 @@ func (*RelayMonitor) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case relaymonitor.FieldID, relaymonitor.FieldIntervalSeconds, relaymonitor.FieldCreatedBy:
 			values[i] = new(sql.NullInt64)
-		case relaymonitor.FieldName, relaymonitor.FieldSystem, relaymonitor.FieldBaseURL, relaymonitor.FieldVendor, relaymonitor.FieldCredentialEncrypted, relaymonitor.FieldLastError:
+		case relaymonitor.FieldName, relaymonitor.FieldSystem, relaymonitor.FieldBaseURL, relaymonitor.FieldVendor, relaymonitor.FieldAuthAccount, relaymonitor.FieldCredentialEncrypted, relaymonitor.FieldLastError:
 			values[i] = new(sql.NullString)
 		case relaymonitor.FieldCreatedAt, relaymonitor.FieldUpdatedAt, relaymonitor.FieldLastCheckedAt:
 			values[i] = new(sql.NullTime)
@@ -150,6 +152,12 @@ func (_m *RelayMonitor) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field vendor", values[i])
 			} else if value.Valid {
 				_m.Vendor = value.String
+			}
+		case relaymonitor.FieldAuthAccount:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field auth_account", values[i])
+			} else if value.Valid {
+				_m.AuthAccount = value.String
 			}
 		case relaymonitor.FieldCredentialEncrypted:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -259,6 +267,9 @@ func (_m *RelayMonitor) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("vendor=")
 	builder.WriteString(_m.Vendor)
+	builder.WriteString(", ")
+	builder.WriteString("auth_account=")
+	builder.WriteString(_m.AuthAccount)
 	builder.WriteString(", ")
 	builder.WriteString("credential_encrypted=<sensitive>")
 	builder.WriteString(", ")

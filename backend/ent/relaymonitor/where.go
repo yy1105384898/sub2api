@@ -80,6 +80,11 @@ func Vendor(v string) predicate.RelayMonitor {
 	return predicate.RelayMonitor(sql.FieldEQ(FieldVendor, v))
 }
 
+// AuthAccount applies equality check predicate on the "auth_account" field. It's identical to AuthAccountEQ.
+func AuthAccount(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldEQ(FieldAuthAccount, v))
+}
+
 // CredentialEncrypted applies equality check predicate on the "credential_encrypted" field. It's identical to CredentialEncryptedEQ.
 func CredentialEncrypted(v string) predicate.RelayMonitor {
 	return predicate.RelayMonitor(sql.FieldEQ(FieldCredentialEncrypted, v))
@@ -413,6 +418,81 @@ func VendorEqualFold(v string) predicate.RelayMonitor {
 // VendorContainsFold applies the ContainsFold predicate on the "vendor" field.
 func VendorContainsFold(v string) predicate.RelayMonitor {
 	return predicate.RelayMonitor(sql.FieldContainsFold(FieldVendor, v))
+}
+
+// AuthAccountEQ applies the EQ predicate on the "auth_account" field.
+func AuthAccountEQ(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldEQ(FieldAuthAccount, v))
+}
+
+// AuthAccountNEQ applies the NEQ predicate on the "auth_account" field.
+func AuthAccountNEQ(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldNEQ(FieldAuthAccount, v))
+}
+
+// AuthAccountIn applies the In predicate on the "auth_account" field.
+func AuthAccountIn(vs ...string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldIn(FieldAuthAccount, vs...))
+}
+
+// AuthAccountNotIn applies the NotIn predicate on the "auth_account" field.
+func AuthAccountNotIn(vs ...string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldNotIn(FieldAuthAccount, vs...))
+}
+
+// AuthAccountGT applies the GT predicate on the "auth_account" field.
+func AuthAccountGT(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldGT(FieldAuthAccount, v))
+}
+
+// AuthAccountGTE applies the GTE predicate on the "auth_account" field.
+func AuthAccountGTE(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldGTE(FieldAuthAccount, v))
+}
+
+// AuthAccountLT applies the LT predicate on the "auth_account" field.
+func AuthAccountLT(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldLT(FieldAuthAccount, v))
+}
+
+// AuthAccountLTE applies the LTE predicate on the "auth_account" field.
+func AuthAccountLTE(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldLTE(FieldAuthAccount, v))
+}
+
+// AuthAccountContains applies the Contains predicate on the "auth_account" field.
+func AuthAccountContains(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldContains(FieldAuthAccount, v))
+}
+
+// AuthAccountHasPrefix applies the HasPrefix predicate on the "auth_account" field.
+func AuthAccountHasPrefix(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldHasPrefix(FieldAuthAccount, v))
+}
+
+// AuthAccountHasSuffix applies the HasSuffix predicate on the "auth_account" field.
+func AuthAccountHasSuffix(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldHasSuffix(FieldAuthAccount, v))
+}
+
+// AuthAccountIsNil applies the IsNil predicate on the "auth_account" field.
+func AuthAccountIsNil() predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldIsNull(FieldAuthAccount))
+}
+
+// AuthAccountNotNil applies the NotNil predicate on the "auth_account" field.
+func AuthAccountNotNil() predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldNotNull(FieldAuthAccount))
+}
+
+// AuthAccountEqualFold applies the EqualFold predicate on the "auth_account" field.
+func AuthAccountEqualFold(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldEqualFold(FieldAuthAccount, v))
+}
+
+// AuthAccountContainsFold applies the ContainsFold predicate on the "auth_account" field.
+func AuthAccountContainsFold(v string) predicate.RelayMonitor {
+	return predicate.RelayMonitor(sql.FieldContainsFold(FieldAuthAccount, v))
 }
 
 // CredentialEncryptedEQ applies the EQ predicate on the "credential_encrypted" field.

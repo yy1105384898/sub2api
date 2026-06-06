@@ -15,6 +15,7 @@ export interface RelayMonitor {
   system: RelaySystem
   base_url: string
   vendor: string
+  auth_account: string
   credential_masked: string
   has_credential: boolean
   credential_decrypt_failed: boolean
@@ -77,6 +78,7 @@ export interface CreateParams {
   system: RelaySystem
   base_url: string
   vendor?: string
+  auth_account?: string
   credential?: string
   watched_groups?: string[]
   enabled?: boolean
@@ -105,6 +107,7 @@ export interface ChangesResponse {
 export interface FetchGroupsParams {
   system: RelaySystem
   base_url: string
+  auth_account?: string
   credential?: string
   monitor_id?: number
 }

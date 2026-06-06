@@ -1466,26 +1466,32 @@ func init() {
 	relaymonitor.DefaultVendor = relaymonitorDescVendor.Default.(string)
 	// relaymonitor.VendorValidator is a validator for the "vendor" field. It is called by the builders before save.
 	relaymonitor.VendorValidator = relaymonitorDescVendor.Validators[0].(func(string) error)
+	// relaymonitorDescAuthAccount is the schema descriptor for auth_account field.
+	relaymonitorDescAuthAccount := relaymonitorFields[4].Descriptor()
+	// relaymonitor.DefaultAuthAccount holds the default value on creation for the auth_account field.
+	relaymonitor.DefaultAuthAccount = relaymonitorDescAuthAccount.Default.(string)
+	// relaymonitor.AuthAccountValidator is a validator for the "auth_account" field. It is called by the builders before save.
+	relaymonitor.AuthAccountValidator = relaymonitorDescAuthAccount.Validators[0].(func(string) error)
 	// relaymonitorDescCredentialEncrypted is the schema descriptor for credential_encrypted field.
-	relaymonitorDescCredentialEncrypted := relaymonitorFields[4].Descriptor()
+	relaymonitorDescCredentialEncrypted := relaymonitorFields[5].Descriptor()
 	// relaymonitor.DefaultCredentialEncrypted holds the default value on creation for the credential_encrypted field.
 	relaymonitor.DefaultCredentialEncrypted = relaymonitorDescCredentialEncrypted.Default.(string)
 	// relaymonitorDescWatchedGroups is the schema descriptor for watched_groups field.
-	relaymonitorDescWatchedGroups := relaymonitorFields[5].Descriptor()
+	relaymonitorDescWatchedGroups := relaymonitorFields[6].Descriptor()
 	// relaymonitor.DefaultWatchedGroups holds the default value on creation for the watched_groups field.
 	relaymonitor.DefaultWatchedGroups = relaymonitorDescWatchedGroups.Default.([]string)
 	// relaymonitorDescEnabled is the schema descriptor for enabled field.
-	relaymonitorDescEnabled := relaymonitorFields[6].Descriptor()
+	relaymonitorDescEnabled := relaymonitorFields[7].Descriptor()
 	// relaymonitor.DefaultEnabled holds the default value on creation for the enabled field.
 	relaymonitor.DefaultEnabled = relaymonitorDescEnabled.Default.(bool)
 	// relaymonitorDescIntervalSeconds is the schema descriptor for interval_seconds field.
-	relaymonitorDescIntervalSeconds := relaymonitorFields[7].Descriptor()
+	relaymonitorDescIntervalSeconds := relaymonitorFields[8].Descriptor()
 	// relaymonitor.DefaultIntervalSeconds holds the default value on creation for the interval_seconds field.
 	relaymonitor.DefaultIntervalSeconds = relaymonitorDescIntervalSeconds.Default.(int)
 	// relaymonitor.IntervalSecondsValidator is a validator for the "interval_seconds" field. It is called by the builders before save.
 	relaymonitor.IntervalSecondsValidator = relaymonitorDescIntervalSeconds.Validators[0].(func(int) error)
 	// relaymonitorDescLastError is the schema descriptor for last_error field.
-	relaymonitorDescLastError := relaymonitorFields[9].Descriptor()
+	relaymonitorDescLastError := relaymonitorFields[10].Descriptor()
 	// relaymonitor.DefaultLastError holds the default value on creation for the last_error field.
 	relaymonitor.DefaultLastError = relaymonitorDescLastError.Default.(string)
 	// relaymonitor.LastErrorValidator is a validator for the "last_error" field. It is called by the builders before save.

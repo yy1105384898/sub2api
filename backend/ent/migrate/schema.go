@@ -1189,6 +1189,7 @@ var (
 		{Name: "system", Type: field.TypeEnum, Enums: []string{"sub2api", "newapi"}},
 		{Name: "base_url", Type: field.TypeString, Size: 500},
 		{Name: "vendor", Type: field.TypeString, Nullable: true, Size: 50, Default: ""},
+		{Name: "auth_account", Type: field.TypeString, Nullable: true, Size: 200, Default: ""},
 		{Name: "credential_encrypted", Type: field.TypeString, Nullable: true, Default: ""},
 		{Name: "watched_groups", Type: field.TypeJSON},
 		{Name: "enabled", Type: field.TypeBool, Default: true},
@@ -1206,7 +1207,7 @@ var (
 			{
 				Name:    "relaymonitor_enabled_last_checked_at",
 				Unique:  false,
-				Columns: []*schema.Column{RelayMonitorsColumns[9], RelayMonitorsColumns[11]},
+				Columns: []*schema.Column{RelayMonitorsColumns[10], RelayMonitorsColumns[12]},
 			},
 			{
 				Name:    "relaymonitor_system",

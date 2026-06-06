@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,10 +24,13 @@ var relayHTTPClient = newSSRFSafeHTTPClient(relayProbeTimeout)
 
 // probeRelayRates 抓取目标站全部分组的当前倍率。
 // 返回的分组未经 watched_groups 过滤，由调用方按需筛选（探测时筛选 / 拉取分组列表时全返）。
-func probeRelayRates(ctx context.Context, system, baseURL, credential string) ([]RelayGroupRate, error) {
+//
+// sub2api：别人的站不开放 API 密钥，只能用「邮箱(authAccount)+密码(credential)」登录，
+// 先 POST /api/v1/auth/login 拿 JWT，再用 Bearer 抓 /groups/available。
+func probeRelayRates(ctx context.Context, system, baseURL, authAccount, credential string) ([]RelayGroupRate, error) {
 	switch system {
 	case RelaySystemSub2API:
-		return probeSub2API(ctx, baseURL, credential)
+		return probeSub2API(ctx, baseURL, authAccount, credential)
 	case RelaySystemNewAPI:
 		return probeNewAPI(ctx, baseURL)
 	default:
@@ -49,19 +53,58 @@ type sub2apiGroup struct {
 	RateMultiplier float64 `json:"rate_multiplier"`
 }
 
-// probeSub2API 抓取 sub2api 站点的分组倍率。需要登录态 Bearer token。
-func probeSub2API(ctx context.Context, baseURL, credential string) ([]RelayGroupRate, error) {
-	if strings.TrimSpace(credential) == "" {
+// probeSub2API 抓取 sub2api 站点的分组倍率：先用邮箱+密码登录拿 JWT，再抓分组。
+func probeSub2API(ctx context.Context, baseURL, authAccount, password string) ([]RelayGroupRate, error) {
+	if strings.TrimSpace(authAccount) == "" || strings.TrimSpace(password) == "" {
 		return nil, ErrRelayMonitorMissingCredential
+	}
+	token, err := loginSub2API(ctx, baseURL, authAccount, password)
+	if err != nil {
+		return nil, err
 	}
 	u := joinRelayURL(baseURL, "/api/v1/groups/available")
 	body, err := relayGet(ctx, u, map[string]string{
-		"Authorization": "Bearer " + strings.TrimSpace(credential),
+		"Authorization": "Bearer " + token,
 	})
 	if err != nil {
 		return nil, err
 	}
 	return parseSub2APIGroups(body)
+}
+
+// loginSub2API 用邮箱+密码登录 sub2api 站点，返回 access_token。
+// 目标站开启 2FA 时无法自动登录，返回探测失败。
+func loginSub2API(ctx context.Context, baseURL, email, password string) (string, error) {
+	payload, _ := json.Marshal(map[string]string{
+		"email":    strings.TrimSpace(email),
+		"password": password,
+	})
+	u := joinRelayURL(baseURL, "/api/v1/auth/login")
+	body, err := relayPostJSON(ctx, u, payload)
+	if err != nil {
+		return "", err
+	}
+	return parseSub2APILoginToken(body)
+}
+
+// parseSub2APILoginToken 从登录响应 {code,message,data:{access_token,requires_2fa}} 取 token。
+func parseSub2APILoginToken(body []byte) (string, error) {
+	var env struct {
+		Data struct {
+			AccessToken string `json:"access_token"`
+			Requires2FA bool   `json:"requires_2fa"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &env); err != nil {
+		return "", fmt.Errorf("%w: invalid sub2api login response", ErrRelayMonitorProbeFailed)
+	}
+	if env.Data.Requires2FA {
+		return "", fmt.Errorf("%w: target site requires 2FA, auto-login unsupported", ErrRelayMonitorProbeFailed)
+	}
+	if strings.TrimSpace(env.Data.AccessToken) == "" {
+		return "", fmt.Errorf("%w: sub2api login returned no token (check email/password)", ErrRelayMonitorProbeFailed)
+	}
+	return env.Data.AccessToken, nil
 }
 
 // parseSub2APIGroups 解析 sub2api /groups/available 响应为分组倍率列表（纯函数，便于单测）。
@@ -161,6 +204,30 @@ func relayGet(ctx context.Context, url string, headers map[string]string) ([]byt
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("%w: upstream HTTP %d", ErrRelayMonitorProbeFailed, resp.StatusCode)
+	}
+	return body, nil
+}
+
+// relayPostJSON 发起一次 POST application/json 并读取（受限）响应体。非 2xx 视为失败。
+func relayPostJSON(ctx context.Context, url string, payload []byte) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(payload))
+	if err != nil {
+		return nil, fmt.Errorf("%w: build request", ErrRelayMonitorProbeFailed)
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "sub2api-relay-monitor")
+	resp, err := relayHTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrRelayMonitorProbeFailed, err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, relayResponseMaxBytes))
+	if err != nil {
+		return nil, fmt.Errorf("%w: read body", ErrRelayMonitorProbeFailed)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("%w: login HTTP %d", ErrRelayMonitorProbeFailed, resp.StatusCode)
 	}
 	return body, nil
 }

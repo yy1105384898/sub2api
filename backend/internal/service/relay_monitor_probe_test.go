@@ -69,6 +69,25 @@ func TestParseNewAPIGroupsMissing(t *testing.T) {
 	}
 }
 
+func TestParseSub2APILoginToken(t *testing.T) {
+	tok, err := parseSub2APILoginToken([]byte(`{"code":0,"message":"ok","data":{"access_token":"jwt-abc","refresh_token":"r"}}`))
+	if err != nil || tok != "jwt-abc" {
+		t.Fatalf("want jwt-abc, got %q err=%v", tok, err)
+	}
+	// 2FA → error
+	if _, err := parseSub2APILoginToken([]byte(`{"data":{"requires_2fa":true}}`)); err == nil {
+		t.Error("expected error when 2FA required")
+	}
+	// 无 token → error
+	if _, err := parseSub2APILoginToken([]byte(`{"data":{"access_token":""}}`)); err == nil {
+		t.Error("expected error when token empty")
+	}
+	// 非法 json → error
+	if _, err := parseSub2APILoginToken([]byte(`nope`)); err == nil {
+		t.Error("expected error on invalid json")
+	}
+}
+
 func TestBuildRateChange(t *testing.T) {
 	m := &RelayMonitor{ID: 7, Name: "mdkj", System: RelaySystemSub2API, Vendor: "OpenAI"}
 	now := time.Now()

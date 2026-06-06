@@ -35,6 +35,7 @@ func (r *relayMonitorRepository) Create(ctx context.Context, m *service.RelayMon
 		SetSystem(relaymonitor.System(m.System)).
 		SetBaseURL(m.BaseURL).
 		SetVendor(m.Vendor).
+		SetAuthAccount(m.AuthAccount).
 		SetCredentialEncrypted(m.Credential). // 已是密文
 		SetWatchedGroups(emptySliceIfNil(m.WatchedGroups)).
 		SetEnabled(m.Enabled).
@@ -65,6 +66,7 @@ func (r *relayMonitorRepository) Update(ctx context.Context, m *service.RelayMon
 		SetSystem(relaymonitor.System(m.System)).
 		SetBaseURL(m.BaseURL).
 		SetVendor(m.Vendor).
+		SetAuthAccount(m.AuthAccount).
 		SetCredentialEncrypted(m.Credential).
 		SetWatchedGroups(emptySliceIfNil(m.WatchedGroups)).
 		SetEnabled(m.Enabled).
@@ -338,6 +340,7 @@ func entToServiceRelayMonitor(row *dbent.RelayMonitor) *service.RelayMonitor {
 		System:          string(row.System),
 		BaseURL:         row.BaseURL,
 		Vendor:          row.Vendor,
+		AuthAccount:     row.AuthAccount,
 		Credential:      row.CredentialEncrypted, // 仍为密文，service 层解密
 		WatchedGroups:   groups,
 		Enabled:         row.Enabled,

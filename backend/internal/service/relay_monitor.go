@@ -59,7 +59,7 @@ var (
 		"RELAY_MONITOR_MISSING_NAME", "name is required",
 	)
 	ErrRelayMonitorMissingCredential = infraerrors.BadRequest(
-		"RELAY_MONITOR_MISSING_CREDENTIAL", "sub2api site requires an access token credential",
+		"RELAY_MONITOR_MISSING_CREDENTIAL", "sub2api site requires login email and password",
 	)
 	ErrRelayMonitorCredentialDecryptFailed = infraerrors.InternalServer(
 		"RELAY_MONITOR_CREDENTIAL_DECRYPT_FAILED", "credential decryption failed; please re-edit the monitor with a fresh token",
@@ -77,6 +77,7 @@ type RelayMonitor struct {
 	System          string
 	BaseURL         string
 	Vendor          string
+	AuthAccount     string
 	Credential      string
 	WatchedGroups   []string
 	Enabled         bool
@@ -126,6 +127,7 @@ type RelayMonitorCreateParams struct {
 	System          string
 	BaseURL         string
 	Vendor          string
+	AuthAccount     string
 	Credential      string
 	WatchedGroups   []string
 	Enabled         bool
@@ -140,6 +142,7 @@ type RelayMonitorUpdateParams struct {
 	System          *string
 	BaseURL         *string
 	Vendor          *string
+	AuthAccount     *string
 	Credential      *string
 	WatchedGroups   *[]string
 	Enabled         *bool

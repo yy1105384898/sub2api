@@ -39,6 +39,7 @@ type relayMonitorCreateRequest struct {
 	System          string   `json:"system" binding:"required,oneof=sub2api newapi"`
 	BaseURL         string   `json:"base_url" binding:"required,max=500"`
 	Vendor          string   `json:"vendor" binding:"max=50"`
+	AuthAccount     string   `json:"auth_account" binding:"max=200"`
 	Credential      string   `json:"credential" binding:"max=4000"`
 	WatchedGroups   []string `json:"watched_groups"`
 	Enabled         *bool    `json:"enabled"`
@@ -50,6 +51,7 @@ type relayMonitorUpdateRequest struct {
 	System          *string   `json:"system" binding:"omitempty,oneof=sub2api newapi"`
 	BaseURL         *string   `json:"base_url" binding:"omitempty,max=500"`
 	Vendor          *string   `json:"vendor" binding:"omitempty,max=50"`
+	AuthAccount     *string   `json:"auth_account" binding:"omitempty,max=200"`
 	Credential      *string   `json:"credential" binding:"omitempty,max=4000"`
 	WatchedGroups   *[]string `json:"watched_groups"`
 	Enabled         *bool     `json:"enabled"`
@@ -57,10 +59,11 @@ type relayMonitorUpdateRequest struct {
 }
 
 type relayFetchGroupsRequest struct {
-	System     string `json:"system" binding:"required,oneof=sub2api newapi"`
-	BaseURL    string `json:"base_url" binding:"required,max=500"`
-	Credential string `json:"credential" binding:"max=4000"`
-	MonitorID  int64  `json:"monitor_id"`
+	System      string `json:"system" binding:"required,oneof=sub2api newapi"`
+	BaseURL     string `json:"base_url" binding:"required,max=500"`
+	AuthAccount string `json:"auth_account" binding:"max=200"`
+	Credential  string `json:"credential" binding:"max=4000"`
+	MonitorID   int64  `json:"monitor_id"`
 }
 
 type relayMonitorResponse struct {
@@ -69,6 +72,7 @@ type relayMonitorResponse struct {
 	System                  string   `json:"system"`
 	BaseURL                 string   `json:"base_url"`
 	Vendor                  string   `json:"vendor"`
+	AuthAccount             string   `json:"auth_account"`
 	CredentialMasked        string   `json:"credential_masked"`
 	HasCredential           bool     `json:"has_credential"`
 	CredentialDecryptFailed bool     `json:"credential_decrypt_failed"`
@@ -130,6 +134,7 @@ func relayMonitorToResponse(m *service.RelayMonitor) *relayMonitorResponse {
 		System:                  m.System,
 		BaseURL:                 m.BaseURL,
 		Vendor:                  m.Vendor,
+		AuthAccount:             m.AuthAccount,
 		CredentialMasked:        maskCredential(m.Credential),
 		HasCredential:           m.Credential != "" || m.CredentialDecryptFailed,
 		CredentialDecryptFailed: m.CredentialDecryptFailed,
@@ -245,6 +250,7 @@ func (h *RelayMonitorHandler) Create(c *gin.Context) {
 		System:          req.System,
 		BaseURL:         req.BaseURL,
 		Vendor:          req.Vendor,
+		AuthAccount:     req.AuthAccount,
 		Credential:      req.Credential,
 		WatchedGroups:   req.WatchedGroups,
 		Enabled:         enabled,
@@ -274,6 +280,7 @@ func (h *RelayMonitorHandler) Update(c *gin.Context) {
 		System:          req.System,
 		BaseURL:         req.BaseURL,
 		Vendor:          req.Vendor,
+		AuthAccount:     req.AuthAccount,
 		Credential:      req.Credential,
 		WatchedGroups:   req.WatchedGroups,
 		Enabled:         req.Enabled,
@@ -350,7 +357,7 @@ func (h *RelayMonitorHandler) FetchGroups(c *gin.Context) {
 		response.ErrorFrom(c, infraerrors.BadRequest("VALIDATION_ERROR", err.Error()))
 		return
 	}
-	rates, err := h.monitorService.FetchGroups(c.Request.Context(), req.System, req.BaseURL, req.Credential, req.MonitorID)
+	rates, err := h.monitorService.FetchGroups(c.Request.Context(), req.System, req.BaseURL, req.AuthAccount, req.Credential, req.MonitorID)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return

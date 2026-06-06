@@ -223,13 +223,23 @@
             <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.relayMonitor.colInterval') }} (s)</label>
             <input v-model.number="form.interval_seconds" type="number" min="60" max="86400" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
           </div>
-          <div class="md:col-span-2">
-            <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {{ t('admin.relayMonitor.credential') }}
-              <span class="text-xs font-normal text-gray-400">{{ form.system === 'sub2api' ? t('admin.relayMonitor.credentialRequired') : t('admin.relayMonitor.credentialOptional') }}</span>
-            </label>
-            <input v-model="form.credential" type="password" autocomplete="off" :placeholder="editing ? t('admin.relayMonitor.credentialKeep') : 'Bearer token'" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
-          </div>
+          <template v-if="form.system === 'sub2api'">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ t('admin.relayMonitor.authAccount') }}
+                <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
+              </label>
+              <input v-model="form.auth_account" type="text" autocomplete="off" placeholder="you@example.com" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ t('admin.relayMonitor.password') }}
+                <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
+              </label>
+              <input v-model="form.credential" type="password" autocomplete="new-password" :placeholder="editing ? t('admin.relayMonitor.credentialKeep') : t('admin.relayMonitor.passwordPlaceholder')" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+            </div>
+            <p class="md:col-span-2 -mt-2 text-xs text-gray-400">{{ t('admin.relayMonitor.sub2apiAuthHint') }}</p>
+          </template>
         </div>
 
         <!-- 分组选择 -->
@@ -339,6 +349,7 @@ const form = reactive({
   system: 'sub2api' as RelaySystem,
   base_url: '',
   vendor: '',
+  auth_account: '',
   credential: '',
   watched_groups: [] as string[],
   interval_seconds: 300,
@@ -450,6 +461,7 @@ function resetForm() {
   form.system = 'sub2api'
   form.base_url = ''
   form.vendor = ''
+  form.auth_account = ''
   form.credential = ''
   form.watched_groups = []
   form.interval_seconds = 300
@@ -469,6 +481,7 @@ function openEdit(m: RelayMonitor) {
   form.system = m.system
   form.base_url = m.base_url
   form.vendor = m.vendor
+  form.auth_account = m.auth_account
   form.credential = ''
   form.watched_groups = [...m.watched_groups]
   form.interval_seconds = m.interval_seconds
@@ -487,6 +500,7 @@ async function fetchGroups() {
     availableGroups.value = await relayMonitorAPI.fetchGroups({
       system: form.system,
       base_url: form.base_url.trim(),
+      auth_account: form.auth_account.trim() || undefined,
       credential: form.credential.trim() || undefined,
       monitor_id: editing.value?.id,
     })
@@ -508,6 +522,7 @@ async function save() {
       system: form.system,
       base_url: form.base_url.trim(),
       vendor: form.vendor.trim(),
+      auth_account: form.auth_account.trim(),
       watched_groups: form.watched_groups,
       interval_seconds: form.interval_seconds,
       enabled: form.enabled,

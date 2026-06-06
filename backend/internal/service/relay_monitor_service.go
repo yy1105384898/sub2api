@@ -76,6 +76,7 @@ func (s *RelayMonitorService) Create(ctx context.Context, p RelayMonitorCreatePa
 		System:          p.System,
 		BaseURL:         normalizeEndpoint(p.BaseURL),
 		Vendor:          strings.TrimSpace(p.Vendor),
+		AuthAccount:     strings.TrimSpace(p.AuthAccount),
 		Credential:      encrypted, // 传入 repository 时为密文
 		WatchedGroups:   normalizeModels(p.WatchedGroups),
 		Enabled:         p.Enabled,
@@ -106,7 +107,9 @@ func validateRelayCreate(p RelayMonitorCreateParams) error {
 	if err := validateEndpoint(p.BaseURL); err != nil {
 		return err
 	}
-	if p.System == RelaySystemSub2API && strings.TrimSpace(p.Credential) == "" {
+	// sub2api 需要邮箱 + 密码登录目标站。
+	if p.System == RelaySystemSub2API &&
+		(strings.TrimSpace(p.AuthAccount) == "" || strings.TrimSpace(p.Credential) == "") {
 		return ErrRelayMonitorMissingCredential
 	}
 	return nil
@@ -122,10 +125,13 @@ func (s *RelayMonitorService) Update(ctx context.Context, id int64, p RelayMonit
 	if err != nil {
 		return nil, err
 	}
-	if existing.System == RelaySystemSub2API &&
-		strings.TrimSpace(existing.Credential) == "" &&
-		(p.Credential == nil || strings.TrimSpace(*p.Credential) == "") {
-		return nil, ErrRelayMonitorMissingCredential
+	// sub2api 校验：必须有邮箱；密码要么已存在、要么本次提供。
+	if existing.System == RelaySystemSub2API {
+		passwordMissing := strings.TrimSpace(existing.Credential) == "" &&
+			(p.Credential == nil || strings.TrimSpace(*p.Credential) == "")
+		if strings.TrimSpace(existing.AuthAccount) == "" || passwordMissing {
+			return nil, ErrRelayMonitorMissingCredential
+		}
 	}
 
 	newPlain, credUpdated, err := s.applyCredentialUpdate(existing, p.Credential)
@@ -175,6 +181,9 @@ func applyRelayUpdate(existing *RelayMonitor, p RelayMonitorUpdateParams) (group
 	}
 	if p.Vendor != nil {
 		existing.Vendor = strings.TrimSpace(*p.Vendor)
+	}
+	if p.AuthAccount != nil {
+		existing.AuthAccount = strings.TrimSpace(*p.AuthAccount)
 	}
 	if p.WatchedGroups != nil {
 		existing.WatchedGroups = normalizeModels(*p.WatchedGroups)
@@ -240,14 +249,16 @@ func (s *RelayMonitorService) Summary(ctx context.Context, search string) (Relay
 // FetchGroups 用给定配置（或已存在监控的凭证）抓取目标站全部分组+当前倍率，不落库。
 // 供前端「拉取分组列表」让用户勾选要监控的分组。
 // 当 monitorID > 0 且 credential 为空时，复用该监控已保存的凭证。
-func (s *RelayMonitorService) FetchGroups(ctx context.Context, system, baseURL, credential string, monitorID int64) ([]RelayGroupRate, error) {
+func (s *RelayMonitorService) FetchGroups(ctx context.Context, system, baseURL, authAccount, credential string, monitorID int64) ([]RelayGroupRate, error) {
 	if err := validateRelaySystem(system); err != nil {
 		return nil, err
 	}
 	if err := validateEndpoint(baseURL); err != nil {
 		return nil, err
 	}
+	account := strings.TrimSpace(authAccount)
 	cred := strings.TrimSpace(credential)
+	// 密码留空且指定了已存在监控时，复用其已保存的账号/密码。
 	if cred == "" && monitorID > 0 {
 		existing, err := s.Get(ctx, monitorID)
 		if err != nil {
@@ -257,8 +268,11 @@ func (s *RelayMonitorService) FetchGroups(ctx context.Context, system, baseURL, 
 			return nil, ErrRelayMonitorCredentialDecryptFailed
 		}
 		cred = existing.Credential
+		if account == "" {
+			account = existing.AuthAccount
+		}
 	}
-	return probeRelayRates(ctx, system, normalizeEndpoint(baseURL), cred)
+	return probeRelayRates(ctx, system, normalizeEndpoint(baseURL), account, cred)
 }
 
 // Probe 对一个监控执行一次探测：抓取倍率 → 对比快照 → 记录涨跌 → 更新快照与 last_checked。
@@ -275,7 +289,7 @@ func (s *RelayMonitorService) Probe(ctx context.Context, id int64) (*RelayProbeR
 
 // probeMonitor 执行探测核心逻辑，monitor 的凭证须已解密。
 func (s *RelayMonitorService) probeMonitor(ctx context.Context, m *RelayMonitor) (*RelayProbeResult, error) {
-	rates, err := probeRelayRates(ctx, m.System, m.BaseURL, m.Credential)
+	rates, err := probeRelayRates(ctx, m.System, m.BaseURL, m.AuthAccount, m.Credential)
 	if err != nil {
 		s.markChecked(ctx, m.ID, probeErrorMessage(err))
 		return nil, err

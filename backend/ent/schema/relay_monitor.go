@@ -48,11 +48,16 @@ func (RelayMonitor) Fields() []ent.Field {
 			Default("").
 			MaxLen(50).
 			Comment("厂商标签，如 OpenAI（仅展示用）"),
+		field.String("auth_account").
+			Optional().
+			Default("").
+			MaxLen(200).
+			Comment("sub2api 登录账号（邮箱）；newapi 留空"),
 		field.String("credential_encrypted").
 			Optional().
 			Default("").
 			Sensitive().
-			Comment("AES-256-GCM 加密的访问凭证：sub2api 需要 Bearer token，newapi 可留空"),
+			Comment("AES-256-GCM 加密的访问凭证：sub2api 存登录密码，newapi 留空"),
 		field.JSON("watched_groups", []string{}).
 			Default([]string{}).
 			Comment("需要监控的分组名列表；为空表示尚未选择，不探测任何分组"),

@@ -99,6 +99,26 @@ func (_u *RelayMonitorUpdate) ClearVendor() *RelayMonitorUpdate {
 	return _u
 }
 
+// SetAuthAccount sets the "auth_account" field.
+func (_u *RelayMonitorUpdate) SetAuthAccount(v string) *RelayMonitorUpdate {
+	_u.mutation.SetAuthAccount(v)
+	return _u
+}
+
+// SetNillableAuthAccount sets the "auth_account" field if the given value is not nil.
+func (_u *RelayMonitorUpdate) SetNillableAuthAccount(v *string) *RelayMonitorUpdate {
+	if v != nil {
+		_u.SetAuthAccount(*v)
+	}
+	return _u
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (_u *RelayMonitorUpdate) ClearAuthAccount() *RelayMonitorUpdate {
+	_u.mutation.ClearAuthAccount()
+	return _u
+}
+
 // SetCredentialEncrypted sets the "credential_encrypted" field.
 func (_u *RelayMonitorUpdate) SetCredentialEncrypted(v string) *RelayMonitorUpdate {
 	_u.mutation.SetCredentialEncrypted(v)
@@ -362,6 +382,11 @@ func (_u *RelayMonitorUpdate) check() error {
 			return &ValidationError{Name: "vendor", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.vendor": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AuthAccount(); ok {
+		if err := relaymonitor.AuthAccountValidator(v); err != nil {
+			return &ValidationError{Name: "auth_account", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.auth_account": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.IntervalSeconds(); ok {
 		if err := relaymonitor.IntervalSecondsValidator(v); err != nil {
 			return &ValidationError{Name: "interval_seconds", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.interval_seconds": %w`, err)}
@@ -404,6 +429,12 @@ func (_u *RelayMonitorUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.VendorCleared() {
 		_spec.ClearField(relaymonitor.FieldVendor, field.TypeString)
+	}
+	if value, ok := _u.mutation.AuthAccount(); ok {
+		_spec.SetField(relaymonitor.FieldAuthAccount, field.TypeString, value)
+	}
+	if _u.mutation.AuthAccountCleared() {
+		_spec.ClearField(relaymonitor.FieldAuthAccount, field.TypeString)
 	}
 	if value, ok := _u.mutation.CredentialEncrypted(); ok {
 		_spec.SetField(relaymonitor.FieldCredentialEncrypted, field.TypeString, value)
@@ -621,6 +652,26 @@ func (_u *RelayMonitorUpdateOne) SetNillableVendor(v *string) *RelayMonitorUpdat
 // ClearVendor clears the value of the "vendor" field.
 func (_u *RelayMonitorUpdateOne) ClearVendor() *RelayMonitorUpdateOne {
 	_u.mutation.ClearVendor()
+	return _u
+}
+
+// SetAuthAccount sets the "auth_account" field.
+func (_u *RelayMonitorUpdateOne) SetAuthAccount(v string) *RelayMonitorUpdateOne {
+	_u.mutation.SetAuthAccount(v)
+	return _u
+}
+
+// SetNillableAuthAccount sets the "auth_account" field if the given value is not nil.
+func (_u *RelayMonitorUpdateOne) SetNillableAuthAccount(v *string) *RelayMonitorUpdateOne {
+	if v != nil {
+		_u.SetAuthAccount(*v)
+	}
+	return _u
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (_u *RelayMonitorUpdateOne) ClearAuthAccount() *RelayMonitorUpdateOne {
+	_u.mutation.ClearAuthAccount()
 	return _u
 }
 
@@ -900,6 +951,11 @@ func (_u *RelayMonitorUpdateOne) check() error {
 			return &ValidationError{Name: "vendor", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.vendor": %w`, err)}
 		}
 	}
+	if v, ok := _u.mutation.AuthAccount(); ok {
+		if err := relaymonitor.AuthAccountValidator(v); err != nil {
+			return &ValidationError{Name: "auth_account", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.auth_account": %w`, err)}
+		}
+	}
 	if v, ok := _u.mutation.IntervalSeconds(); ok {
 		if err := relaymonitor.IntervalSecondsValidator(v); err != nil {
 			return &ValidationError{Name: "interval_seconds", err: fmt.Errorf(`ent: validator failed for field "RelayMonitor.interval_seconds": %w`, err)}
@@ -959,6 +1015,12 @@ func (_u *RelayMonitorUpdateOne) sqlSave(ctx context.Context) (_node *RelayMonit
 	}
 	if _u.mutation.VendorCleared() {
 		_spec.ClearField(relaymonitor.FieldVendor, field.TypeString)
+	}
+	if value, ok := _u.mutation.AuthAccount(); ok {
+		_spec.SetField(relaymonitor.FieldAuthAccount, field.TypeString, value)
+	}
+	if _u.mutation.AuthAccountCleared() {
+		_spec.ClearField(relaymonitor.FieldAuthAccount, field.TypeString)
 	}
 	if value, ok := _u.mutation.CredentialEncrypted(); ok {
 		_spec.SetField(relaymonitor.FieldCredentialEncrypted, field.TypeString, value)

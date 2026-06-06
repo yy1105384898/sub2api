@@ -29916,6 +29916,7 @@ type RelayMonitorMutation struct {
 	system               *relaymonitor.System
 	base_url             *string
 	vendor               *string
+	auth_account         *string
 	credential_encrypted *string
 	watched_groups       *[]string
 	appendwatched_groups []string
@@ -30263,6 +30264,55 @@ func (m *RelayMonitorMutation) VendorCleared() bool {
 func (m *RelayMonitorMutation) ResetVendor() {
 	m.vendor = nil
 	delete(m.clearedFields, relaymonitor.FieldVendor)
+}
+
+// SetAuthAccount sets the "auth_account" field.
+func (m *RelayMonitorMutation) SetAuthAccount(s string) {
+	m.auth_account = &s
+}
+
+// AuthAccount returns the value of the "auth_account" field in the mutation.
+func (m *RelayMonitorMutation) AuthAccount() (r string, exists bool) {
+	v := m.auth_account
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAuthAccount returns the old "auth_account" field's value of the RelayMonitor entity.
+// If the RelayMonitor object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *RelayMonitorMutation) OldAuthAccount(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAuthAccount is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAuthAccount requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAuthAccount: %w", err)
+	}
+	return oldValue.AuthAccount, nil
+}
+
+// ClearAuthAccount clears the value of the "auth_account" field.
+func (m *RelayMonitorMutation) ClearAuthAccount() {
+	m.auth_account = nil
+	m.clearedFields[relaymonitor.FieldAuthAccount] = struct{}{}
+}
+
+// AuthAccountCleared returns if the "auth_account" field was cleared in this mutation.
+func (m *RelayMonitorMutation) AuthAccountCleared() bool {
+	_, ok := m.clearedFields[relaymonitor.FieldAuthAccount]
+	return ok
+}
+
+// ResetAuthAccount resets all changes to the "auth_account" field.
+func (m *RelayMonitorMutation) ResetAuthAccount() {
+	m.auth_account = nil
+	delete(m.clearedFields, relaymonitor.FieldAuthAccount)
 }
 
 // SetCredentialEncrypted sets the "credential_encrypted" field.
@@ -30753,7 +30803,7 @@ func (m *RelayMonitorMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *RelayMonitorMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.created_at != nil {
 		fields = append(fields, relaymonitor.FieldCreatedAt)
 	}
@@ -30771,6 +30821,9 @@ func (m *RelayMonitorMutation) Fields() []string {
 	}
 	if m.vendor != nil {
 		fields = append(fields, relaymonitor.FieldVendor)
+	}
+	if m.auth_account != nil {
+		fields = append(fields, relaymonitor.FieldAuthAccount)
 	}
 	if m.credential_encrypted != nil {
 		fields = append(fields, relaymonitor.FieldCredentialEncrypted)
@@ -30813,6 +30866,8 @@ func (m *RelayMonitorMutation) Field(name string) (ent.Value, bool) {
 		return m.BaseURL()
 	case relaymonitor.FieldVendor:
 		return m.Vendor()
+	case relaymonitor.FieldAuthAccount:
+		return m.AuthAccount()
 	case relaymonitor.FieldCredentialEncrypted:
 		return m.CredentialEncrypted()
 	case relaymonitor.FieldWatchedGroups:
@@ -30848,6 +30903,8 @@ func (m *RelayMonitorMutation) OldField(ctx context.Context, name string) (ent.V
 		return m.OldBaseURL(ctx)
 	case relaymonitor.FieldVendor:
 		return m.OldVendor(ctx)
+	case relaymonitor.FieldAuthAccount:
+		return m.OldAuthAccount(ctx)
 	case relaymonitor.FieldCredentialEncrypted:
 		return m.OldCredentialEncrypted(ctx)
 	case relaymonitor.FieldWatchedGroups:
@@ -30912,6 +30969,13 @@ func (m *RelayMonitorMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetVendor(v)
+		return nil
+	case relaymonitor.FieldAuthAccount:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAuthAccount(v)
 		return nil
 	case relaymonitor.FieldCredentialEncrypted:
 		v, ok := value.(string)
@@ -31022,6 +31086,9 @@ func (m *RelayMonitorMutation) ClearedFields() []string {
 	if m.FieldCleared(relaymonitor.FieldVendor) {
 		fields = append(fields, relaymonitor.FieldVendor)
 	}
+	if m.FieldCleared(relaymonitor.FieldAuthAccount) {
+		fields = append(fields, relaymonitor.FieldAuthAccount)
+	}
 	if m.FieldCleared(relaymonitor.FieldCredentialEncrypted) {
 		fields = append(fields, relaymonitor.FieldCredentialEncrypted)
 	}
@@ -31047,6 +31114,9 @@ func (m *RelayMonitorMutation) ClearField(name string) error {
 	switch name {
 	case relaymonitor.FieldVendor:
 		m.ClearVendor()
+		return nil
+	case relaymonitor.FieldAuthAccount:
+		m.ClearAuthAccount()
 		return nil
 	case relaymonitor.FieldCredentialEncrypted:
 		m.ClearCredentialEncrypted()
@@ -31082,6 +31152,9 @@ func (m *RelayMonitorMutation) ResetField(name string) error {
 		return nil
 	case relaymonitor.FieldVendor:
 		m.ResetVendor()
+		return nil
+	case relaymonitor.FieldAuthAccount:
+		m.ResetAuthAccount()
 		return nil
 	case relaymonitor.FieldCredentialEncrypted:
 		m.ResetCredentialEncrypted()

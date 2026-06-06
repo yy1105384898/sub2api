@@ -115,14 +115,24 @@
 
       <!-- ============ 比价（默认） ============ -->
       <div v-show="activeTab === 'compare'" class="space-y-4">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ t('admin.relayMonitor.compareTitle') }}</h2>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.compareHint') }}</p>
           </div>
-          <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-300">
-            {{ compareGroups.length }} {{ t('admin.relayMonitor.bucketsUnit') }}
-          </span>
+          <div class="flex items-center gap-2">
+            <select
+              v-model="compareSort"
+              class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white"
+            >
+              <option value="rate_asc">{{ t('admin.relayMonitor.sortRateAsc') }}</option>
+              <option value="rate_desc">{{ t('admin.relayMonitor.sortRateDesc') }}</option>
+              <option value="change">{{ t('admin.relayMonitor.sortChange') }}</option>
+            </select>
+            <span class="rounded bg-gray-100 px-2 py-1 text-xs text-gray-500 dark:bg-dark-700 dark:text-gray-300">
+              {{ compareGroups.length }} {{ t('admin.relayMonitor.bucketsUnit') }}
+            </span>
+          </div>
         </div>
 
         <div v-if="compareGroups.length" class="space-y-3">
@@ -152,10 +162,10 @@
                   v-for="(row, i) in g.rows"
                   :key="row.monitor_id + '/' + row.group_name"
                   class="border-b border-gray-100 last:border-0 dark:border-dark-700/50"
-                  :class="i === 0 ? 'bg-emerald-50/70 dark:bg-emerald-950/20' : ''"
+                  :class="row.current_rate === g.minRate ? 'bg-emerald-50/70 dark:bg-emerald-950/20' : ''"
                 >
                   <td class="px-3 py-2.5">
-                    <span v-if="i === 0" class="text-base" :title="t('admin.relayMonitor.cheapest')">🏆</span>
+                    <span v-if="row.current_rate === g.minRate" class="text-base" :title="t('admin.relayMonitor.cheapest')">🏆</span>
                     <span v-else class="text-gray-400">{{ i + 1 }}</span>
                   </td>
                   <td class="px-3 py-2.5">
@@ -164,12 +174,14 @@
                       <span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
                     </div>
                   </td>
-                  <td class="max-w-[200px] truncate px-3 py-2.5 text-gray-500 dark:text-gray-400" :title="row.group_name">{{ row.group_name }}</td>
+                  <td class="max-w-[200px] truncate px-3 py-2.5" :title="t('admin.relayMonitor.viewHistory')">
+                    <button class="truncate text-gray-500 hover:text-primary-600 hover:underline dark:text-gray-400" @click="openHistory(row)">{{ row.group_name }}</button>
+                  </td>
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-2">
-                      <span class="font-semibold tabular-nums" :class="i === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'">{{ formatRate(row.current_rate) }}</span>
+                      <span class="font-semibold tabular-nums" :class="row.current_rate === g.minRate ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'">{{ formatRate(row.current_rate) }}</span>
                       <div class="hidden h-1.5 w-20 overflow-hidden rounded bg-gray-100 md:block dark:bg-dark-700">
-                        <div class="h-full rounded" :class="i === 0 ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-dark-500'" :style="{ width: rateBarWidth(row.current_rate, g.maxRate) }"></div>
+                        <div class="h-full rounded" :class="row.current_rate === g.minRate ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-dark-500'" :style="{ width: rateBarWidth(row.current_rate, g.maxRate) }"></div>
                       </div>
                     </div>
                   </td>
@@ -227,6 +239,12 @@
               <tr :class="siteTone(siteIndex).header">
                 <td colspan="5" class="px-4 py-2">
                   <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+                    <button
+                      class="text-base leading-none"
+                      :class="isFav(site.site) ? 'text-amber-400' : 'text-gray-300 hover:text-amber-400 dark:text-gray-500'"
+                      :title="isFav(site.site) ? t('admin.relayMonitor.unpin') : t('admin.relayMonitor.pin')"
+                      @click="toggleFav(site.site)"
+                    >★</button>
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" :class="siteTone(siteIndex).dot"></span>
                     <span class="text-[15px] font-bold text-gray-900 dark:text-white">{{ site.site }}</span>
                     <span class="rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.system }}</span>
@@ -255,7 +273,9 @@
                     <span class="rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
                   </div>
                 </td>
-                <td class="px-4 py-2.5 font-medium text-gray-900 dark:text-white">{{ row.group_name }}</td>
+                <td class="px-4 py-2.5">
+                  <button class="font-medium text-gray-900 hover:text-primary-600 hover:underline dark:text-white" :title="t('admin.relayMonitor.viewHistory')" @click="openHistory(row)">{{ row.group_name }}</button>
+                </td>
                 <td class="px-4 py-2.5 font-semibold text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
                 <td class="px-4 py-2.5">
                   <span
@@ -513,6 +533,21 @@
       @confirm="doDelete"
       @cancel="deleting = null"
     />
+
+    <!-- 倍率历史折线 -->
+    <BaseDialog :show="history.open" :title="t('admin.relayMonitor.historyTitle')" width="wide" @close="history.open = false">
+      <div class="space-y-3">
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          <span class="font-semibold text-gray-900 dark:text-white">{{ history.site }}</span>
+          <span class="mx-1 text-gray-400">/</span>{{ history.group }}
+        </p>
+        <div v-if="history.loading" class="flex h-64 items-center justify-center text-sm text-gray-400">{{ t('common.loading') }}</div>
+        <div v-else-if="historyChartData" class="h-64">
+          <Line :data="historyChartData" :options="historyChartOptions" />
+        </div>
+        <div v-else class="flex h-64 items-center justify-center text-sm text-gray-400">{{ t('admin.relayMonitor.noHistory') }}</div>
+      </div>
+    </BaseDialog>
   </AppLayout>
 </template>
 
@@ -525,7 +560,20 @@ import AppLayout from '@/components/layout/AppLayout.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import ConfirmDialog from '@/components/common/ConfirmDialog.vue'
 import Pagination from '@/components/common/Pagination.vue'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+import { Line } from 'vue-chartjs'
 import { relayMonitorAPI } from '@/api/admin/relayMonitor'
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend)
 import type {
   RelayMonitor,
   RelayRateChange,
@@ -567,6 +615,38 @@ const siteFilter = ref('')
 const vendorFilter = ref('')
 const systemFilter = ref<'' | RelaySystem>('')
 const probingAll = ref(false)
+
+// 比价排序：倍率升 / 倍率降 / 涨跌幅
+const compareSort = ref<'rate_asc' | 'rate_desc' | 'change'>('rate_asc')
+
+// 收藏/置顶站点（localStorage 持久化，按站点名）
+const FAV_KEY = 'relay_fav_sites'
+const favorites = ref<Set<string>>(new Set())
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAV_KEY)
+    if (raw) favorites.value = new Set(JSON.parse(raw) as string[])
+  } catch { /* ignore */ }
+}
+function isFav(site: string): boolean {
+  return favorites.value.has(site)
+}
+function toggleFav(site: string) {
+  const next = new Set(favorites.value)
+  if (next.has(site)) next.delete(site)
+  else next.add(site)
+  favorites.value = next
+  try { localStorage.setItem(FAV_KEY, JSON.stringify([...next])) } catch { /* ignore */ }
+}
+
+// 倍率历史折线弹窗
+const history = reactive({
+  open: false,
+  loading: false,
+  site: '',
+  group: '',
+  points: [] as { t: string; rate: number }[],
+})
 
 // ---- 站点 ----
 const monitors = ref<RelayMonitor[]>([])
@@ -709,7 +789,7 @@ const overviewSites = computed<OverviewSite[]>(() => {
     siteMap.set(key, rows)
   }
 
-  return Array.from(siteMap.entries()).map(([key, rows]) => {
+  const sites = Array.from(siteMap.entries()).map(([key, rows]) => {
     const first = rows[0]
     const sortedRows = [...rows].sort(compareOverviewRows)
     return {
@@ -723,6 +803,12 @@ const overviewSites = computed<OverviewSite[]>(() => {
       lastChangedAt: newestChangedAt(rows),
     }
   })
+  // 收藏的站点置顶
+  return sites.sort((a, b) => {
+    const fa = isFav(a.site) ? 0 : 1
+    const fb = isFav(b.site) ? 0 : 1
+    return fa - fb || a.site.localeCompare(b.site)
+  })
 })
 
 // ---- 比价视图：按 厂商·套餐 聚合，组内站点按当前倍率升序 ----
@@ -734,7 +820,19 @@ interface CompareGroup {
   vendor: string
   tier: PlanTier
   rows: RelayOverviewRow[]
+  minRate: number
   maxRate: number
+}
+function compareRowSorter(a: RelayOverviewRow, b: RelayOverviewRow): number {
+  if (compareSort.value === 'rate_desc') {
+    return b.current_rate - a.current_rate || a.site.localeCompare(b.site)
+  }
+  if (compareSort.value === 'change') {
+    const da = a.has_change ? Math.abs(a.new_rate - a.old_rate) : -1
+    const db = b.has_change ? Math.abs(b.new_rate - b.old_rate) : -1
+    return db - da || a.current_rate - b.current_rate
+  }
+  return a.current_rate - b.current_rate || a.site.localeCompare(b.site)
 }
 const compareGroups = computed<CompareGroup[]>(() => {
   const map = new Map<string, RelayOverviewRow[]>()
@@ -744,16 +842,14 @@ const compareGroups = computed<CompareGroup[]>(() => {
     if (arr) arr.push(r)
     else map.set(key, [r])
   }
-  const groups = Array.from(map.entries()).map(([key, rows]) => {
-    const sorted = [...rows].sort((a, b) => a.current_rate - b.current_rate || a.site.localeCompare(b.site))
-    return {
-      key,
-      vendor: normalizeVendor(sorted[0].vendor),
-      tier: planTier(sorted[0].group_name),
-      rows: sorted,
-      maxRate: Math.max(...sorted.map((r) => r.current_rate), 0),
-    }
-  })
+  const groups = Array.from(map.entries()).map(([key, rows]) => ({
+    key,
+    vendor: normalizeVendor(rows[0].vendor),
+    tier: planTier(rows[0].group_name),
+    rows: [...rows].sort(compareRowSorter),
+    minRate: Math.min(...rows.map((r) => r.current_rate)),
+    maxRate: Math.max(...rows.map((r) => r.current_rate), 0),
+  }))
   groups.sort((a, b) =>
     a.vendor.localeCompare(b.vendor) ||
     (PLAN_ORDER[a.tier.key] ?? 9) - (PLAN_ORDER[b.tier.key] ?? 9))
@@ -821,6 +917,71 @@ function formatTime(s: string): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
+
+// 打开某分组的倍率历史折线（用 relay_rate_changes 数据构造时间序列）。
+async function openHistory(row: { monitor_id: number; site: string; group_name: string; current_rate: number }) {
+  history.open = true
+  history.loading = true
+  history.site = row.site
+  history.group = row.group_name
+  history.points = []
+  try {
+    const res = await relayMonitorAPI.listChanges({ monitor_id: row.monitor_id, page: 1, page_size: 200 })
+    const groupChanges = res.items
+      .filter((c) => c.group_name === row.group_name)
+      .sort((a, b) => new Date(a.detected_at).getTime() - new Date(b.detected_at).getTime())
+    const pts: { t: string; rate: number }[] = []
+    if (groupChanges.length) {
+      pts.push({ t: groupChanges[0].detected_at, rate: groupChanges[0].old_rate })
+      for (const c of groupChanges) pts.push({ t: c.detected_at, rate: c.new_rate })
+    }
+    if (!pts.length || pts[pts.length - 1].rate !== row.current_rate) {
+      pts.push({ t: new Date().toISOString(), rate: row.current_rate })
+    }
+    history.points = pts
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('admin.relayMonitor.loadError')))
+  } finally {
+    history.loading = false
+  }
+}
+
+const historyChartData = computed(() => {
+  if (history.points.length < 2) return null
+  return {
+    labels: history.points.map((p) => formatTime(p.t)),
+    datasets: [
+      {
+        label: history.group,
+        data: history.points.map((p) => p.rate),
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.15)',
+        fill: true,
+        stepped: true,
+        pointRadius: 3,
+        pointBackgroundColor: '#6366f1',
+      },
+    ],
+  }
+})
+
+const historyChartOptions = computed(() => {
+  const dark = document.documentElement.classList.contains('dark')
+  const text = dark ? '#e5e7eb' : '#374151'
+  const grid = dark ? '#374151' : '#e5e7eb'
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: (c: { raw: unknown }) => formatRate(Number(c.raw)) } },
+    },
+    scales: {
+      x: { grid: { color: grid }, ticks: { color: text, font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 } },
+      y: { grid: { color: grid }, ticks: { color: text, font: { size: 10 }, callback: (v: string | number) => formatRate(Number(v)) }, beginAtZero: true },
+    },
+  }
+})
 
 async function loadOverview() {
   overviewLoading.value = true
@@ -1029,6 +1190,7 @@ async function doDelete() {
 }
 
 onMounted(() => {
+  loadFavorites()
   loadOverview()
   loadChanges()
   loadSummary()

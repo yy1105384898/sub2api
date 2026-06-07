@@ -72,21 +72,22 @@ var (
 // RelayMonitor 中转站监控配置领域模型。
 // Credential 在 service 层为明文（已解密）；传给 repository 时为密文（与 ChannelMonitor.APIKey 一致）。
 type RelayMonitor struct {
-	ID              int64
-	Name            string
-	System          string
-	BaseURL         string
-	Vendor          string
-	AuthAccount     string
-	Credential      string
-	WatchedGroups   []string
-	Enabled         bool
-	IntervalSeconds int
-	LastCheckedAt   *time.Time
-	LastError       string
-	CreatedBy       int64
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                  int64
+	Name                string
+	System              string
+	BaseURL             string
+	Vendor              string
+	AuthAccount         string
+	Credential          string
+	WatchedGroups       []string
+	AutoProbeCategories []string
+	Enabled             bool
+	IntervalSeconds     int
+	LastCheckedAt       *time.Time
+	LastError           string
+	CreatedBy           int64
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 
 	// CredentialDecryptFailed 解密失败标志；探测前必须检查并拒绝执行。
 	CredentialDecryptFailed bool `json:"-"`
@@ -123,30 +124,32 @@ type RelayRateChange struct {
 
 // RelayMonitorCreateParams 创建参数。Credential 为明文 token（sub2api 必填，newapi 可空）。
 type RelayMonitorCreateParams struct {
-	Name            string
-	System          string
-	BaseURL         string
-	Vendor          string
-	AuthAccount     string
-	Credential      string
-	WatchedGroups   []string
-	Enabled         bool
-	IntervalSeconds int
-	CreatedBy       int64
+	Name                string
+	System              string
+	BaseURL             string
+	Vendor              string
+	AuthAccount         string
+	Credential          string
+	WatchedGroups       []string
+	AutoProbeCategories []string
+	Enabled             bool
+	IntervalSeconds     int
+	CreatedBy           int64
 }
 
 // RelayMonitorUpdateParams 更新参数；非 nil 字段才覆盖。
 // Credential 为 nil 或空 = 不修改；非空 = 加密覆盖。
 type RelayMonitorUpdateParams struct {
-	Name            *string
-	System          *string
-	BaseURL         *string
-	Vendor          *string
-	AuthAccount     *string
-	Credential      *string
-	WatchedGroups   *[]string
-	Enabled         *bool
-	IntervalSeconds *int
+	Name                *string
+	System              *string
+	BaseURL             *string
+	Vendor              *string
+	AuthAccount         *string
+	Credential          *string
+	WatchedGroups       *[]string
+	AutoProbeCategories *[]string
+	Enabled             *bool
+	IntervalSeconds     *int
 }
 
 // RelayMonitorListParams 监控列表查询参数。
@@ -212,6 +215,7 @@ type RelayMonitorRepository interface {
 	ListSnapshots(ctx context.Context, monitorID int64) ([]*RelayRateSnapshot, error)
 	UpsertSnapshot(ctx context.Context, monitorID int64, group string, rate float64, at time.Time) error
 	DeleteSnapshotsNotIn(ctx context.Context, monitorID int64, groups []string) error
+	DeleteSnapshot(ctx context.Context, monitorID int64, group string) error
 	// ListOverview 返回所有被跟踪分组的当前倍率 + 最近一次变化（若有），
 	// 变化过的排在前面（按变化时间倒序）。search 模糊匹配 site/vendor/group。
 	ListOverview(ctx context.Context, search string) ([]*RelayGroupOverview, error)

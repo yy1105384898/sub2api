@@ -35,27 +35,29 @@ func NewRelayMonitorHandler(monitorService *service.RelayMonitorService) *RelayM
 // --- Request / Response ---
 
 type relayMonitorCreateRequest struct {
-	Name            string   `json:"name" binding:"required,max=100"`
-	System          string   `json:"system" binding:"required,oneof=sub2api newapi"`
-	BaseURL         string   `json:"base_url" binding:"required,max=500"`
-	Vendor          string   `json:"vendor" binding:"max=50"`
-	AuthAccount     string   `json:"auth_account" binding:"max=200"`
-	Credential      string   `json:"credential" binding:"max=4000"`
-	WatchedGroups   []string `json:"watched_groups"`
-	Enabled         *bool    `json:"enabled"`
-	IntervalSeconds int      `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
+	Name                string   `json:"name" binding:"required,max=100"`
+	System              string   `json:"system" binding:"required,oneof=sub2api newapi"`
+	BaseURL             string   `json:"base_url" binding:"required,max=500"`
+	Vendor              string   `json:"vendor" binding:"max=50"`
+	AuthAccount         string   `json:"auth_account" binding:"max=200"`
+	Credential          string   `json:"credential" binding:"max=4000"`
+	WatchedGroups       []string `json:"watched_groups"`
+	AutoProbeCategories []string `json:"auto_probe_categories"`
+	Enabled             *bool    `json:"enabled"`
+	IntervalSeconds     int      `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
 }
 
 type relayMonitorUpdateRequest struct {
-	Name            *string   `json:"name" binding:"omitempty,max=100"`
-	System          *string   `json:"system" binding:"omitempty,oneof=sub2api newapi"`
-	BaseURL         *string   `json:"base_url" binding:"omitempty,max=500"`
-	Vendor          *string   `json:"vendor" binding:"omitempty,max=50"`
-	AuthAccount     *string   `json:"auth_account" binding:"omitempty,max=200"`
-	Credential      *string   `json:"credential" binding:"omitempty,max=4000"`
-	WatchedGroups   *[]string `json:"watched_groups"`
-	Enabled         *bool     `json:"enabled"`
-	IntervalSeconds *int      `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
+	Name                *string   `json:"name" binding:"omitempty,max=100"`
+	System              *string   `json:"system" binding:"omitempty,oneof=sub2api newapi"`
+	BaseURL             *string   `json:"base_url" binding:"omitempty,max=500"`
+	Vendor              *string   `json:"vendor" binding:"omitempty,max=50"`
+	AuthAccount         *string   `json:"auth_account" binding:"omitempty,max=200"`
+	Credential          *string   `json:"credential" binding:"omitempty,max=4000"`
+	WatchedGroups       *[]string `json:"watched_groups"`
+	AutoProbeCategories *[]string `json:"auto_probe_categories"`
+	Enabled             *bool     `json:"enabled"`
+	IntervalSeconds     *int      `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
 }
 
 type relayFetchGroupsRequest struct {
@@ -77,6 +79,7 @@ type relayMonitorResponse struct {
 	HasCredential           bool     `json:"has_credential"`
 	CredentialDecryptFailed bool     `json:"credential_decrypt_failed"`
 	WatchedGroups           []string `json:"watched_groups"`
+	AutoProbeCategories     []string `json:"auto_probe_categories"`
 	Enabled                 bool     `json:"enabled"`
 	IntervalSeconds         int      `json:"interval_seconds"`
 	LastCheckedAt           *string  `json:"last_checked_at"`
@@ -139,6 +142,7 @@ func relayMonitorToResponse(m *service.RelayMonitor) *relayMonitorResponse {
 		HasCredential:           m.Credential != "" || m.CredentialDecryptFailed,
 		CredentialDecryptFailed: m.CredentialDecryptFailed,
 		WatchedGroups:           groups,
+		AutoProbeCategories:     m.AutoProbeCategories,
 		Enabled:                 m.Enabled,
 		IntervalSeconds:         m.IntervalSeconds,
 		LastError:               m.LastError,
@@ -255,16 +259,17 @@ func (h *RelayMonitorHandler) Create(c *gin.Context) {
 		enabled = *req.Enabled
 	}
 	m, err := h.monitorService.Create(c.Request.Context(), service.RelayMonitorCreateParams{
-		Name:            req.Name,
-		System:          req.System,
-		BaseURL:         req.BaseURL,
-		Vendor:          req.Vendor,
-		AuthAccount:     req.AuthAccount,
-		Credential:      req.Credential,
-		WatchedGroups:   req.WatchedGroups,
-		Enabled:         enabled,
-		IntervalSeconds: req.IntervalSeconds,
-		CreatedBy:       subject.UserID,
+		Name:                req.Name,
+		System:              req.System,
+		BaseURL:             req.BaseURL,
+		Vendor:              req.Vendor,
+		AuthAccount:         req.AuthAccount,
+		Credential:          req.Credential,
+		WatchedGroups:       req.WatchedGroups,
+		AutoProbeCategories: req.AutoProbeCategories,
+		Enabled:             enabled,
+		IntervalSeconds:     req.IntervalSeconds,
+		CreatedBy:           subject.UserID,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -285,15 +290,16 @@ func (h *RelayMonitorHandler) Update(c *gin.Context) {
 		return
 	}
 	m, err := h.monitorService.Update(c.Request.Context(), id, service.RelayMonitorUpdateParams{
-		Name:            req.Name,
-		System:          req.System,
-		BaseURL:         req.BaseURL,
-		Vendor:          req.Vendor,
-		AuthAccount:     req.AuthAccount,
-		Credential:      req.Credential,
-		WatchedGroups:   req.WatchedGroups,
-		Enabled:         req.Enabled,
-		IntervalSeconds: req.IntervalSeconds,
+		Name:                req.Name,
+		System:              req.System,
+		BaseURL:             req.BaseURL,
+		Vendor:              req.Vendor,
+		AuthAccount:         req.AuthAccount,
+		Credential:          req.Credential,
+		WatchedGroups:       req.WatchedGroups,
+		AutoProbeCategories: req.AutoProbeCategories,
+		Enabled:             req.Enabled,
+		IntervalSeconds:     req.IntervalSeconds,
 	})
 	if err != nil {
 		response.ErrorFrom(c, err)
@@ -420,6 +426,28 @@ func (h *RelayMonitorHandler) DeleteChange(c *gin.Context) {
 		return
 	}
 	if err := h.monitorService.DeleteChange(c.Request.Context(), id); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"deleted": true})
+}
+
+type relayDeleteGroupRequest struct {
+	GroupName string `json:"group_name" binding:"required,max=200"`
+}
+
+// DeleteGroup DELETE /api/v1/admin/relay-monitors/:id/groups
+func (h *RelayMonitorHandler) DeleteGroup(c *gin.Context) {
+	id, ok := parseRelayMonitorID(c)
+	if !ok {
+		return
+	}
+	var req relayDeleteGroupRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("VALIDATION_ERROR", err.Error()))
+		return
+	}
+	if err := h.monitorService.DeleteGroup(c.Request.Context(), id, req.GroupName); err != nil {
 		response.ErrorFrom(c, err)
 		return
 	}

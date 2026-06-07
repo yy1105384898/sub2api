@@ -3,12 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	dbent "github.com/Wei-Shaw/sub2api/ent"
-	"github.com/Wei-Shaw/sub2api/ent/relaymonitor"
 	"github.com/Wei-Shaw/sub2api/ent/relayratechange"
 	"github.com/Wei-Shaw/sub2api/ent/relayratesnapshot"
 	"github.com/Wei-Shaw/sub2api/internal/service"
@@ -29,53 +29,58 @@ func NewRelayMonitorRepository(client *dbent.Client, db *sql.DB) service.RelayMo
 // ---------- CRUD ----------
 
 func (r *relayMonitorRepository) Create(ctx context.Context, m *service.RelayMonitor) error {
-	client := clientFromContext(ctx, r.client)
-	created, err := client.RelayMonitor.Create().
-		SetName(m.Name).
-		SetSystem(relaymonitor.System(m.System)).
-		SetBaseURL(m.BaseURL).
-		SetVendor(m.Vendor).
-		SetAuthAccount(m.AuthAccount).
-		SetCredentialEncrypted(m.Credential). // 已是密文
-		SetWatchedGroups(emptySliceIfNil(m.WatchedGroups)).
-		SetEnabled(m.Enabled).
-		SetIntervalSeconds(m.IntervalSeconds).
-		SetCreatedBy(m.CreatedBy).
-		Save(ctx)
+	watched, err := json.Marshal(emptySliceIfNil(m.WatchedGroups))
 	if err != nil {
+		return fmt.Errorf("marshal watched groups: %w", err)
+	}
+	categories, err := json.Marshal(emptySliceIfNil(m.AutoProbeCategories))
+	if err != nil {
+		return fmt.Errorf("marshal auto probe categories: %w", err)
+	}
+	const q = `
+		INSERT INTO relay_monitors
+		    (name, system, base_url, vendor, auth_account, credential_encrypted, watched_groups,
+		     auto_probe_categories, enabled, interval_seconds, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,$11)
+		RETURNING id, created_at, updated_at
+	`
+	if err := r.db.QueryRowContext(ctx, q, m.Name, m.System, m.BaseURL, m.Vendor, m.AuthAccount,
+		m.Credential, string(watched), string(categories), m.Enabled, m.IntervalSeconds, m.CreatedBy).
+		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt); err != nil {
 		return translatePersistenceError(err, service.ErrRelayMonitorNotFound, nil)
 	}
-	m.ID = created.ID
-	m.CreatedAt = created.CreatedAt
-	m.UpdatedAt = created.UpdatedAt
 	return nil
 }
 
 func (r *relayMonitorRepository) GetByID(ctx context.Context, id int64) (*service.RelayMonitor, error) {
-	row, err := r.client.RelayMonitor.Query().Where(relaymonitor.IDEQ(id)).Only(ctx)
-	if err != nil {
+	rows, total, err := r.listByQuery(ctx, "m.id = $1", []any{id}, 1, 1)
+	if err != nil || total == 0 {
 		return nil, translatePersistenceError(err, service.ErrRelayMonitorNotFound, nil)
 	}
-	return entToServiceRelayMonitor(row), nil
+	return rows[0], nil
 }
 
 func (r *relayMonitorRepository) Update(ctx context.Context, m *service.RelayMonitor) error {
-	client := clientFromContext(ctx, r.client)
-	updated, err := client.RelayMonitor.UpdateOneID(m.ID).
-		SetName(m.Name).
-		SetSystem(relaymonitor.System(m.System)).
-		SetBaseURL(m.BaseURL).
-		SetVendor(m.Vendor).
-		SetAuthAccount(m.AuthAccount).
-		SetCredentialEncrypted(m.Credential).
-		SetWatchedGroups(emptySliceIfNil(m.WatchedGroups)).
-		SetEnabled(m.Enabled).
-		SetIntervalSeconds(m.IntervalSeconds).
-		Save(ctx)
+	watched, err := json.Marshal(emptySliceIfNil(m.WatchedGroups))
 	if err != nil {
+		return fmt.Errorf("marshal watched groups: %w", err)
+	}
+	categories, err := json.Marshal(emptySliceIfNil(m.AutoProbeCategories))
+	if err != nil {
+		return fmt.Errorf("marshal auto probe categories: %w", err)
+	}
+	const q = `
+		UPDATE relay_monitors
+		SET name=$2, system=$3, base_url=$4, vendor=$5, auth_account=$6,
+		    credential_encrypted=$7, watched_groups=$8::jsonb, auto_probe_categories=$9::jsonb,
+		    enabled=$10, interval_seconds=$11, updated_at=NOW()
+		WHERE id=$1
+		RETURNING updated_at
+	`
+	if err := r.db.QueryRowContext(ctx, q, m.ID, m.Name, m.System, m.BaseURL, m.Vendor, m.AuthAccount,
+		m.Credential, string(watched), string(categories), m.Enabled, m.IntervalSeconds).Scan(&m.UpdatedAt); err != nil {
 		return translatePersistenceError(err, service.ErrRelayMonitorNotFound, nil)
 	}
-	m.UpdatedAt = updated.UpdatedAt
 	return nil
 }
 
@@ -88,24 +93,19 @@ func (r *relayMonitorRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *relayMonitorRepository) List(ctx context.Context, params service.RelayMonitorListParams) ([]*service.RelayMonitor, int64, error) {
-	q := r.client.RelayMonitor.Query()
+	where := []string{"TRUE"}
+	args := []any{}
 	if params.System != "" {
-		q = q.Where(relaymonitor.SystemEQ(relaymonitor.System(params.System)))
+		args = append(args, params.System)
+		where = append(where, fmt.Sprintf("m.system = $%d", len(args)))
 	}
 	if params.Enabled != nil {
-		q = q.Where(relaymonitor.EnabledEQ(*params.Enabled))
+		args = append(args, *params.Enabled)
+		where = append(where, fmt.Sprintf("m.enabled = $%d", len(args)))
 	}
 	if s := strings.TrimSpace(params.Search); s != "" {
-		q = q.Where(relaymonitor.Or(
-			relaymonitor.NameContainsFold(s),
-			relaymonitor.VendorContainsFold(s),
-			relaymonitor.BaseURLContainsFold(s),
-		))
-	}
-
-	total, err := q.Count(ctx)
-	if err != nil {
-		return nil, 0, fmt.Errorf("count relay monitors: %w", err)
+		args = append(args, s)
+		where = append(where, fmt.Sprintf("(m.name ILIKE '%%'||$%d||'%%' OR m.vendor ILIKE '%%'||$%d||'%%' OR m.base_url ILIKE '%%'||$%d||'%%')", len(args), len(args), len(args)))
 	}
 
 	pageSize := params.PageSize
@@ -116,34 +116,47 @@ func (r *relayMonitorRepository) List(ctx context.Context, params service.RelayM
 	if page <= 0 {
 		page = 1
 	}
+	return r.listByQuery(ctx, strings.Join(where, " AND "), args, page, pageSize)
+}
 
-	rows, err := q.
-		Order(dbent.Desc(relaymonitor.FieldID)).
-		Offset((page - 1) * pageSize).
-		Limit(pageSize).
-		All(ctx)
+func (r *relayMonitorRepository) listByQuery(ctx context.Context, where string, args []any, page, pageSize int) ([]*service.RelayMonitor, int64, error) {
+	countSQL := "SELECT COUNT(*) FROM relay_monitors m WHERE " + where
+	var total int64
+	if err := r.db.QueryRowContext(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count relay monitors: %w", err)
+	}
+	queryArgs := append([]any{}, args...)
+	queryArgs = append(queryArgs, pageSize, (page-1)*pageSize)
+	const base = `
+		SELECT m.id, m.name, m.system, m.base_url, m.vendor, m.auth_account, m.credential_encrypted,
+		       m.watched_groups, m.auto_probe_categories, m.enabled, m.interval_seconds,
+		       m.last_checked_at, m.last_error, m.created_by, m.created_at, m.updated_at
+		FROM relay_monitors m
+		WHERE %s
+		ORDER BY m.id DESC
+		LIMIT $%d OFFSET $%d
+	`
+	rows, err := r.db.QueryContext(ctx, fmt.Sprintf(base, where, len(queryArgs)-1, len(queryArgs)), queryArgs...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("list relay monitors: %w", err)
 	}
-	out := make([]*service.RelayMonitor, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, entToServiceRelayMonitor(row))
+	defer func() { _ = rows.Close() }()
+	out := make([]*service.RelayMonitor, 0, pageSize)
+	for rows.Next() {
+		m, err := scanRelayMonitor(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		out = append(out, m)
 	}
-	return out, int64(total), nil
+	return out, total, rows.Err()
 }
 
 // ---------- 调度器辅助 ----------
 
 func (r *relayMonitorRepository) ListEnabled(ctx context.Context) ([]*service.RelayMonitor, error) {
-	rows, err := r.client.RelayMonitor.Query().Where(relaymonitor.EnabledEQ(true)).All(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("list enabled relay monitors: %w", err)
-	}
-	out := make([]*service.RelayMonitor, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, entToServiceRelayMonitor(row))
-	}
-	return out, nil
+	rows, _, err := r.listByQuery(ctx, "m.enabled = TRUE", nil, 1, 10000)
+	return rows, err
 }
 
 func (r *relayMonitorRepository) MarkChecked(ctx context.Context, id int64, checkedAt time.Time, lastErr string) error {
@@ -202,6 +215,15 @@ func (r *relayMonitorRepository) DeleteSnapshotsNotIn(ctx context.Context, monit
 	}
 	if _, err := del.Exec(ctx); err != nil {
 		return fmt.Errorf("delete stale snapshots: %w", err)
+	}
+	return nil
+}
+
+func (r *relayMonitorRepository) DeleteSnapshot(ctx context.Context, monitorID int64, group string) error {
+	if _, err := r.db.ExecContext(ctx,
+		"DELETE FROM relay_rate_snapshots WHERE monitor_id = $1 AND group_name = $2",
+		monitorID, strings.TrimSpace(group)); err != nil {
+		return fmt.Errorf("delete snapshot: %w", err)
 	}
 	return nil
 }
@@ -407,6 +429,33 @@ func entToServiceRelayMonitor(row *dbent.RelayMonitor) *service.RelayMonitor {
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       row.UpdatedAt,
 	}
+}
+
+type relayMonitorScanner interface {
+	Scan(dest ...any) error
+}
+
+func scanRelayMonitor(scanner relayMonitorScanner) (*service.RelayMonitor, error) {
+	m := &service.RelayMonitor{}
+	var watchedRaw, categoriesRaw []byte
+	if err := scanner.Scan(&m.ID, &m.Name, &m.System, &m.BaseURL, &m.Vendor, &m.AuthAccount, &m.Credential,
+		&watchedRaw, &categoriesRaw, &m.Enabled, &m.IntervalSeconds, &m.LastCheckedAt, &m.LastError,
+		&m.CreatedBy, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("scan relay monitor: %w", err)
+	}
+	if len(watchedRaw) > 0 {
+		_ = json.Unmarshal(watchedRaw, &m.WatchedGroups)
+	}
+	if len(categoriesRaw) > 0 {
+		_ = json.Unmarshal(categoriesRaw, &m.AutoProbeCategories)
+	}
+	if m.WatchedGroups == nil {
+		m.WatchedGroups = []string{}
+	}
+	if m.AutoProbeCategories == nil {
+		m.AutoProbeCategories = []string{}
+	}
+	return m, nil
 }
 
 func entToServiceRelayChange(row *dbent.RelayRateChange) *service.RelayRateChange {

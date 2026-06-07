@@ -655,6 +655,7 @@ func registerRelayMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		monitors.PUT("/:id", h.Admin.RelayMonitor.Update)
 		monitors.DELETE("/:id", h.Admin.RelayMonitor.Delete)
 		monitors.POST("/:id/probe", h.Admin.RelayMonitor.Probe)
+		monitors.DELETE("/:id/groups", h.Admin.RelayMonitor.DeleteGroup)
 	}
 }
 

@@ -72,16 +72,17 @@ func (s *RelayMonitorService) Create(ctx context.Context, p RelayMonitorCreatePa
 		interval = relayDefaultIntervalSeconds
 	}
 	m := &RelayMonitor{
-		Name:            strings.TrimSpace(p.Name),
-		System:          p.System,
-		BaseURL:         normalizeEndpoint(p.BaseURL),
-		Vendor:          strings.TrimSpace(p.Vendor),
-		AuthAccount:     strings.TrimSpace(p.AuthAccount),
-		Credential:      encrypted, // 传入 repository 时为密文
-		WatchedGroups:   normalizeModels(p.WatchedGroups),
-		Enabled:         p.Enabled,
-		IntervalSeconds: interval,
-		CreatedBy:       p.CreatedBy,
+		Name:                strings.TrimSpace(p.Name),
+		System:              p.System,
+		BaseURL:             normalizeEndpoint(p.BaseURL),
+		Vendor:              strings.TrimSpace(p.Vendor),
+		AuthAccount:         strings.TrimSpace(p.AuthAccount),
+		Credential:          encrypted, // 传入 repository 时为密文
+		WatchedGroups:       normalizeModels(p.WatchedGroups),
+		AutoProbeCategories: normalizeRelayAutoProbeCategories(p.AutoProbeCategories),
+		Enabled:             p.Enabled,
+		IntervalSeconds:     interval,
+		CreatedBy:           p.CreatedBy,
 	}
 	if err := s.repo.Create(ctx, m); err != nil {
 		return nil, fmt.Errorf("create relay monitor: %w", err)
@@ -189,6 +190,9 @@ func applyRelayUpdate(existing *RelayMonitor, p RelayMonitorUpdateParams) (group
 		existing.WatchedGroups = normalizeModels(*p.WatchedGroups)
 		groupsChanged = true
 	}
+	if p.AutoProbeCategories != nil {
+		existing.AutoProbeCategories = normalizeRelayAutoProbeCategories(*p.AutoProbeCategories)
+	}
 	if p.Enabled != nil {
 		existing.Enabled = *p.Enabled
 	}
@@ -252,6 +256,30 @@ func (s *RelayMonitorService) DeleteChange(ctx context.Context, id int64) error 
 	return s.repo.DeleteChange(ctx, id)
 }
 
+// DeleteGroup 删除总览中的单个分组快照；常用于清理已停用/改名后的旧分组。
+func (s *RelayMonitorService) DeleteGroup(ctx context.Context, monitorID int64, group string) error {
+	group = strings.TrimSpace(group)
+	if monitorID <= 0 || group == "" {
+		return ErrRelayMonitorNotFound
+	}
+	m, err := s.repo.GetByID(ctx, monitorID)
+	if err != nil {
+		return err
+	}
+	m.WatchedGroups = removeString(m.WatchedGroups, group)
+	if err := s.repo.Update(ctx, m); err != nil {
+		return fmt.Errorf("update relay monitor groups: %w", err)
+	}
+	if err := s.repo.DeleteSnapshot(ctx, monitorID, group); err != nil {
+		return err
+	}
+	if s.scheduler != nil {
+		s.decryptInPlace(m)
+		s.scheduler.Schedule(m)
+	}
+	return nil
+}
+
 // Overview 倍率总览：所有被跟踪分组的当前倍率，变化过的附带涨跌并排在前面。
 func (s *RelayMonitorService) Overview(ctx context.Context, search string) ([]*RelayGroupOverview, error) {
 	return s.repo.ListOverview(ctx, strings.TrimSpace(search))
@@ -308,20 +336,18 @@ func (s *RelayMonitorService) probeMonitor(ctx context.Context, m *RelayMonitor)
 		return nil, err
 	}
 
-	watched := watchedSet(m.WatchedGroups)
 	now := time.Now()
 	old, err := s.loadSnapshotMap(ctx, m.ID)
 	if err != nil {
 		return nil, err
 	}
+	targets := relayProbeTargetSet(m.WatchedGroups, m.AutoProbeCategories, rates, old)
 
 	result := &RelayProbeResult{Rates: make([]RelayGroupRate, 0, len(rates))}
 	seen := make(map[string]struct{}, len(rates))
 	for _, gr := range rates {
-		if len(watched) > 0 {
-			if _, ok := watched[gr.GroupName]; !ok {
-				continue // 只跟踪选定分组
-			}
+		if _, ok := targets[gr.GroupName]; !ok {
+			continue
 		}
 		seen[gr.GroupName] = struct{}{}
 		result.Rates = append(result.Rates, gr)
@@ -333,10 +359,8 @@ func (s *RelayMonitorService) probeMonitor(ctx context.Context, m *RelayMonitor)
 		}
 	}
 	for groupName, oldRate := range old {
-		if len(watched) > 0 {
-			if _, ok := watched[groupName]; !ok {
-				continue
-			}
+		if _, ok := targets[groupName]; !ok {
+			continue
 		}
 		if _, ok := seen[groupName]; ok {
 			continue
@@ -519,6 +543,101 @@ func watchedSet(groups []string) map[string]struct{} {
 		g = strings.TrimSpace(g)
 		if g != "" {
 			out[g] = struct{}{}
+		}
+	}
+	return out
+}
+
+const (
+	RelayAutoProbeGPT      = "gpt"
+	RelayAutoProbeClaude   = "claude"
+	RelayAutoProbeGemini   = "gemini"
+	RelayAutoProbeGrok     = "grok"
+	RelayAutoProbeDomestic = "domestic"
+)
+
+func normalizeRelayAutoProbeCategories(in []string) []string {
+	allowed := map[string]struct{}{
+		RelayAutoProbeGPT: {}, RelayAutoProbeClaude: {}, RelayAutoProbeGemini: {},
+		RelayAutoProbeGrok: {}, RelayAutoProbeDomestic: {},
+	}
+	seen := map[string]struct{}{}
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		v = strings.ToLower(strings.TrimSpace(v))
+		if _, ok := allowed[v]; !ok {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+func relayProbeTargetSet(watchedGroups, categories []string, rates []RelayGroupRate, old map[string]float64) map[string]struct{} {
+	out := watchedSet(watchedGroups)
+	for _, gr := range rates {
+		if relayGroupMatchesCategories(gr.GroupName, categories) {
+			out[gr.GroupName] = struct{}{}
+		}
+	}
+	for group := range old {
+		if relayGroupMatchesCategories(group, categories) {
+			out[group] = struct{}{}
+		}
+	}
+	return out
+}
+
+func relayGroupMatchesCategories(group string, categories []string) bool {
+	if len(categories) == 0 {
+		return false
+	}
+	g := strings.ToLower(group)
+	for _, cat := range categories {
+		switch cat {
+		case RelayAutoProbeGPT:
+			if strings.Contains(g, "gpt") || strings.Contains(g, "openai") || strings.Contains(g, "chatgpt") || strings.Contains(g, "codex") {
+				return true
+			}
+		case RelayAutoProbeClaude:
+			if strings.Contains(g, "claude") || strings.Contains(g, "sonnet") || strings.Contains(g, "opus") || strings.Contains(g, "haiku") {
+				return true
+			}
+		case RelayAutoProbeGemini:
+			if strings.Contains(g, "gemini") {
+				return true
+			}
+		case RelayAutoProbeGrok:
+			if strings.Contains(g, "grok") || strings.Contains(g, "xai") {
+				return true
+			}
+		case RelayAutoProbeDomestic:
+			if containsAny(g, []string{"deepseek", "qwen", "通义", "豆包", "doubao", "kimi", "智谱", "glm", "文心", "ernie", "hunyuan", "混元", "国产"}) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func containsAny(s string, needles []string) bool {
+	for _, n := range needles {
+		if strings.Contains(s, n) {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(in []string, target string) []string {
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if strings.TrimSpace(v) != target {
+			out = append(out, v)
 		}
 	}
 	return out

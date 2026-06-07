@@ -248,6 +248,7 @@
                 <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colCurrentRate') }}</th>
                 <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
                 <th class="px-4 py-2.5 font-medium">{{ t('admin.relayMonitor.colChangedAt') }}</th>
+                <th class="px-4 py-2.5 font-medium text-right">{{ t('admin.relayMonitor.colActions') }}</th>
               </tr>
             </thead>
             <tbody
@@ -257,7 +258,7 @@
             >
               <!-- 站点一级标题行 -->
               <tr :class="siteTone(siteIndex).header">
-                <td colspan="5" class="px-4 py-2">
+                <td colspan="6" class="px-4 py-2">
                   <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                     <button
                       class="text-base leading-none"
@@ -318,6 +319,15 @@
                   <span v-else class="text-gray-400">{{ t('admin.relayMonitor.stable') }}</span>
                 </td>
                 <td class="px-4 py-2.5 whitespace-nowrap text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
+                <td class="px-4 py-2.5 text-right">
+                  <button
+                    v-if="row.removed"
+                    class="text-red-600 hover:underline"
+                    @click="confirmDeleteGroup(row)"
+                  >
+                    {{ t('common.delete') }}
+                  </button>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -561,6 +571,15 @@
             </button>
           </div>
           <p class="mb-2 text-xs text-gray-400">{{ t('admin.relayMonitor.watchedGroupsHint') }}</p>
+          <div class="mb-3 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/40 dark:bg-blue-950/20">
+            <p class="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">{{ t('admin.relayMonitor.autoProbeCategories') }}</p>
+            <div class="flex flex-wrap gap-3 text-sm text-gray-700 dark:text-gray-200">
+              <label v-for="opt in autoProbeOptions" :key="opt.key" class="flex cursor-pointer items-center gap-1.5">
+                <input type="checkbox" :value="opt.key" v-model="form.auto_probe_categories" class="rounded" />
+                {{ opt.label }}
+              </label>
+            </div>
+          </div>
           <div v-if="availableGroups.length" class="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-gray-200 p-2 dark:border-dark-600">
             <label v-for="g in availableGroups" :key="g.group_name" class="flex cursor-pointer items-center gap-2 rounded px-2 py-1 hover:bg-gray-50 dark:hover:bg-dark-700">
               <input type="checkbox" :value="g.group_name" v-model="form.watched_groups" class="rounded" />
@@ -605,6 +624,16 @@
       danger
       @confirm="doDeleteChange"
       @cancel="deletingChange = null"
+    />
+
+    <ConfirmDialog
+      :show="!!deletingGroup"
+      :title="t('admin.relayMonitor.deleteGroupTitle')"
+      :message="deletingGroup ? t('admin.relayMonitor.deleteGroupConfirm', { site: deletingGroup.site, group: deletingGroup.group_name }) : ''"
+      :confirm-text="t('common.delete')"
+      danger
+      @confirm="doDeleteGroup"
+      @cancel="deletingGroup = null"
     />
 
     <!-- 倍率历史折线 -->
@@ -654,6 +683,7 @@ import type {
   RelayGroupRate,
   RelaySystem,
   RateDirection,
+  RelayAutoProbeCategory,
 } from '@/api/admin/relayMonitor'
 
 const { t } = useI18n()
@@ -734,6 +764,7 @@ const fetchingGroups = ref(false)
 const availableGroups = ref<RelayGroupRate[]>([])
 const deleting = ref<RelayMonitor | null>(null)
 const deletingChange = ref<RelayRateChange | null>(null)
+const deletingGroup = ref<RelayOverviewRow | null>(null)
 
 const form = reactive({
   name: '',
@@ -744,6 +775,7 @@ const form = reactive({
   auth_account: '',
   credential: '',
   watched_groups: [] as string[],
+  auto_probe_categories: [] as RelayAutoProbeCategory[],
   interval_seconds: 300,
   enabled: true,
 })
@@ -756,6 +788,13 @@ function effectiveAuthAccount(): string {
 
 // 厂商下拉候选（datalist，仍可自定义输入）。
 const vendorOptions = ['OpenAI', 'Claude', 'Gemini', 'Grok', 'DeepSeek']
+const autoProbeOptions: { key: RelayAutoProbeCategory; label: string }[] = [
+  { key: 'gpt', label: 'GPT / OpenAI' },
+  { key: 'claude', label: 'Claude' },
+  { key: 'gemini', label: 'Gemini' },
+  { key: 'grok', label: 'Grok' },
+  { key: 'domestic', label: t('admin.relayMonitor.autoProbeDomestic') },
+]
 
 // 套餐档位：按分组名关键字识别（覆盖 OpenAI/Claude/Gemini/Grok 各家）。
 // 顺序由具体到一般：team→enterprise→max→ultra→pro→plus→free。
@@ -1232,6 +1271,7 @@ function resetForm() {
   form.auth_account = ''
   form.credential = ''
   form.watched_groups = []
+  form.auto_probe_categories = []
   form.interval_seconds = 300
   form.enabled = true
   availableGroups.value = []
@@ -1254,6 +1294,7 @@ function openEdit(m: RelayMonitor) {
   form.auth_account = m.auth_account
   form.credential = ''
   form.watched_groups = [...m.watched_groups]
+  form.auto_probe_categories = [...(m.auto_probe_categories || [])]
   form.interval_seconds = m.interval_seconds
   form.enabled = m.enabled
   availableGroups.value = m.watched_groups.map((g) => ({ group_name: g, rate: NaN }))
@@ -1294,6 +1335,7 @@ async function save() {
       vendor: form.vendor.trim(),
       auth_account: effectiveAuthAccount(),
       watched_groups: form.watched_groups,
+      auto_probe_categories: form.auto_probe_categories,
       interval_seconds: form.interval_seconds,
       enabled: form.enabled,
       ...(form.credential.trim() ? { credential: form.credential.trim() } : {}),
@@ -1346,6 +1388,24 @@ async function doDeleteChange() {
     await loadChanges()
     await loadSummary()
     await loadOverview()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  }
+}
+
+function confirmDeleteGroup(row: RelayOverviewRow) {
+  deletingGroup.value = row
+}
+
+async function doDeleteGroup() {
+  if (!deletingGroup.value) return
+  try {
+    await relayMonitorAPI.deleteGroup(deletingGroup.value.monitor_id, deletingGroup.value.group_name)
+    appStore.showSuccess(t('common.deleted'))
+    deletingGroup.value = null
+    await loadMonitors()
+    await loadOverview()
+    await loadSummary()
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t('common.error')))
   }

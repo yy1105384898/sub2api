@@ -8,6 +8,7 @@ import { apiClient } from '../client'
 
 export type RelaySystem = 'sub2api' | 'newapi'
 export type RateDirection = 'up' | 'down'
+export type RelayAutoProbeCategory = 'gpt' | 'claude' | 'gemini' | 'grok' | 'domestic'
 
 export interface RelayMonitor {
   id: number
@@ -20,6 +21,7 @@ export interface RelayMonitor {
   has_credential: boolean
   credential_decrypt_failed: boolean
   watched_groups: string[]
+  auto_probe_categories: RelayAutoProbeCategory[]
   enabled: boolean
   interval_seconds: number
   last_checked_at: string | null
@@ -97,6 +99,7 @@ export interface CreateParams {
   auth_account?: string
   credential?: string
   watched_groups?: string[]
+  auto_probe_categories?: RelayAutoProbeCategory[]
   enabled?: boolean
   interval_seconds?: number
 }
@@ -210,6 +213,13 @@ export async function deleteChange(id: number): Promise<void> {
   await apiClient.delete(`/admin/relay-monitors/changes/${id}`)
 }
 
+/** Delete one group snapshot from site overview. */
+export async function deleteGroup(id: number, groupName: string): Promise<void> {
+  await apiClient.delete(`/admin/relay-monitors/${id}/groups`, {
+    data: { group_name: groupName },
+  })
+}
+
 /** Get up/down announcement counts (top summary cards). */
 export async function summary(search?: string): Promise<RelaySummary> {
   const { data } = await apiClient.get<RelaySummary>('/admin/relay-monitors/summary', {
@@ -237,6 +247,7 @@ export const relayMonitorAPI = {
   fetchGroups,
   listChanges,
   deleteChange,
+  deleteGroup,
   summary,
   overview,
 }

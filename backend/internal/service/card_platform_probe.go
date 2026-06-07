@@ -17,7 +17,6 @@ const cardResponseMaxBytes = 4 * 1024 * 1024
 var ldxpPresetGoodsListURLs = []string{
 	"https://pay.ldxp.cn/merchantApi/MyParent/searchGoodsList",
 	"https://api.ldxp.cn/merchantApi/MyParent/searchGoodsList",
-	"https://admin.ldxp.cn/merchantApi/MyParent/searchGoodsList",
 }
 
 func probeCardProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProductSnapshot, [][]byte, error) {
@@ -47,6 +46,7 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 	products := make([]*CardProductSnapshot, 0)
 	raws := make([][]byte, 0)
 	var lastErr error
+	var serviceErr error
 	for _, apiURL := range apiURLs {
 		products, raws = products[:0], raws[:0]
 		lastErr = nil
@@ -61,6 +61,9 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 			payload, err := postLDXP(ctx, apiURL, strings.TrimSpace(m.Credential), body)
 			if err != nil {
 				lastErr = err
+				if !isNetworkLookupError(err) {
+					serviceErr = err
+				}
 				break
 			}
 			list := extractLDXPList(payload)
@@ -81,6 +84,9 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 		}
 	}
 	if lastErr != nil {
+		if serviceErr != nil {
+			return nil, nil, serviceErr
+		}
 		return nil, nil, lastErr
 	}
 	return products, raws, nil
@@ -143,6 +149,14 @@ func buildLDXPGoodsListURLs(rawBase string) ([]string, error) {
 	u.RawQuery = ""
 	u.Fragment = ""
 	return []string{u.String()}, nil
+}
+
+func isNetworkLookupError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "no such host") || strings.Contains(msg, "lookup ")
 }
 
 func extractLDXPList(payload map[string]any) [][]byte {

@@ -23,11 +23,11 @@ func NewCardPlatformMonitorRepository(_ *dbent.Client, db *sql.DB) service.CardP
 func (r *cardPlatformMonitorRepository) Create(ctx context.Context, m *service.CardPlatformMonitor) error {
 	const q = `
 		INSERT INTO card_platform_monitors
-		    (name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, enabled, interval_seconds, fetch_pages, note, created_by)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		    (name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, ingest_key, enabled, interval_seconds, fetch_pages, note, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		RETURNING id, created_at, updated_at
 	`
-	if err := r.db.QueryRowContext(ctx, q, m.Name, m.PlatformType, m.BaseURL, m.ShopURL, m.AuthMode, m.Credential, m.Enabled, m.IntervalSeconds, m.FetchPages, m.Note, m.CreatedBy).
+	if err := r.db.QueryRowContext(ctx, q, m.Name, m.PlatformType, m.BaseURL, m.ShopURL, m.AuthMode, m.Credential, m.IngestKey, m.Enabled, m.IntervalSeconds, m.FetchPages, m.Note, m.CreatedBy).
 		Scan(&m.ID, &m.CreatedAt, &m.UpdatedAt); err != nil {
 		return fmt.Errorf("create card monitor: %w", err)
 	}
@@ -36,7 +36,7 @@ func (r *cardPlatformMonitorRepository) Create(ctx context.Context, m *service.C
 
 func (r *cardPlatformMonitorRepository) GetByID(ctx context.Context, id int64) (*service.CardPlatformMonitor, error) {
 	const q = `
-		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, enabled,
+		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, ingest_key, enabled,
 		       interval_seconds, fetch_pages, last_checked_at, last_error, note, created_by, created_at, updated_at
 		FROM card_platform_monitors WHERE id=$1
 	`
@@ -54,11 +54,11 @@ func (r *cardPlatformMonitorRepository) Update(ctx context.Context, m *service.C
 	const q = `
 		UPDATE card_platform_monitors
 		SET name=$2, platform_type=$3, base_url=$4, shop_url=$5, auth_mode=$6, credential_encrypted=$7,
-		    enabled=$8, interval_seconds=$9, fetch_pages=$10, note=$11, updated_at=NOW()
+		    ingest_key=$8, enabled=$9, interval_seconds=$10, fetch_pages=$11, note=$12, updated_at=NOW()
 		WHERE id=$1
 		RETURNING updated_at
 	`
-	if err := r.db.QueryRowContext(ctx, q, m.ID, m.Name, m.PlatformType, m.BaseURL, m.ShopURL, m.AuthMode, m.Credential, m.Enabled, m.IntervalSeconds, m.FetchPages, m.Note).
+	if err := r.db.QueryRowContext(ctx, q, m.ID, m.Name, m.PlatformType, m.BaseURL, m.ShopURL, m.AuthMode, m.Credential, m.IngestKey, m.Enabled, m.IntervalSeconds, m.FetchPages, m.Note).
 		Scan(&m.UpdatedAt); err != nil {
 		if err == sql.ErrNoRows {
 			return service.ErrCardMonitorNotFound
@@ -89,7 +89,7 @@ func (r *cardPlatformMonitorRepository) List(ctx context.Context, params service
 	page, pageSize := normalizeRepoPage(params.Page, params.PageSize)
 	args = append(args, pageSize, (page-1)*pageSize)
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, enabled,
+		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, ingest_key, enabled,
 		       interval_seconds, fetch_pages, last_checked_at, last_error, note, created_by, created_at, updated_at
 		FROM card_platform_monitors `+where+`
 		ORDER BY id DESC LIMIT $`+fmt.Sprint(len(args)-1)+` OFFSET $`+fmt.Sprint(len(args)), args...)
@@ -103,7 +103,7 @@ func (r *cardPlatformMonitorRepository) List(ctx context.Context, params service
 
 func (r *cardPlatformMonitorRepository) ListEnabled(ctx context.Context) ([]*service.CardPlatformMonitor, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, enabled,
+		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, ingest_key, enabled,
 		       interval_seconds, fetch_pages, last_checked_at, last_error, note, created_by, created_at, updated_at
 		FROM card_platform_monitors WHERE enabled = TRUE ORDER BY id ASC
 	`)
@@ -112,6 +112,22 @@ func (r *cardPlatformMonitorRepository) ListEnabled(ctx context.Context) ([]*ser
 	}
 	defer func() { _ = rows.Close() }()
 	return scanCardMonitorRows(rows)
+}
+
+func (r *cardPlatformMonitorRepository) GetByIngestKey(ctx context.Context, key string) (*service.CardPlatformMonitor, error) {
+	const q = `
+		SELECT id, name, platform_type, base_url, shop_url, auth_mode, credential_encrypted, ingest_key, enabled,
+		       interval_seconds, fetch_pages, last_checked_at, last_error, note, created_by, created_at, updated_at
+		FROM card_platform_monitors WHERE ingest_key=$1
+	`
+	m, err := scanCardMonitor(r.db.QueryRowContext(ctx, q, key))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, service.ErrCardMonitorIngestNotFound
+		}
+		return nil, fmt.Errorf("get card monitor by ingest key: %w", err)
+	}
+	return m, nil
 }
 
 func (r *cardPlatformMonitorRepository) MarkChecked(ctx context.Context, id int64, checkedAt time.Time, lastErr string) error {
@@ -317,7 +333,7 @@ type scannerRow interface{ Scan(dest ...any) error }
 func scanCardMonitor(row scannerRow) (*service.CardPlatformMonitor, error) {
 	m := &service.CardPlatformMonitor{}
 	var lastChecked sql.NullTime
-	if err := row.Scan(&m.ID, &m.Name, &m.PlatformType, &m.BaseURL, &m.ShopURL, &m.AuthMode, &m.Credential,
+	if err := row.Scan(&m.ID, &m.Name, &m.PlatformType, &m.BaseURL, &m.ShopURL, &m.AuthMode, &m.Credential, &m.IngestKey,
 		&m.Enabled, &m.IntervalSeconds, &m.FetchPages, &lastChecked, &m.LastError, &m.Note, &m.CreatedBy, &m.CreatedAt, &m.UpdatedAt); err != nil {
 		return nil, err
 	}

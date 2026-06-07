@@ -123,13 +123,18 @@
           <div class="mt-3 grid gap-3 md:grid-cols-6">
             <input v-model="form.name" class="input" placeholder="平台名称" />
             <select v-model="form.platform_type" class="input"><option value="ldxp">链动小铺（自动）</option></select>
-            <input v-model="form.credential" class="input md:col-span-2" type="password" placeholder="Merchant-Token" />
-            <input v-model.number="form.interval_seconds" class="input" type="number" min="60" placeholder="间隔秒" />
-            <input v-model.number="form.fetch_pages" class="input" type="number" min="1" max="500" placeholder="扫描页数" />
+            <select v-model="form.auth_mode" class="input">
+              <option value="push">浏览器推送（推荐）</option>
+              <option value="token">Token（直连，多被反爬挡）</option>
+              <option value="cookie">Cookie（直连）</option>
+            </select>
             <label class="flex items-center gap-2 text-sm dark:text-gray-200"><input v-model="form.enabled" type="checkbox" />启用</label>
+            <input v-if="form.auth_mode !== 'push'" v-model="form.credential" class="input md:col-span-2" type="password" :placeholder="form.auth_mode === 'cookie' ? '完整 Cookie' : 'Merchant-Token'" />
+            <input v-if="form.auth_mode !== 'push'" v-model.number="form.interval_seconds" class="input" type="number" min="60" placeholder="间隔秒" />
+            <input v-if="form.auth_mode !== 'push'" v-model.number="form.fetch_pages" class="input" type="number" min="1" max="500" placeholder="扫描页数" />
             <input v-model="form.base_url" class="input md:col-span-3" placeholder="自定义接口地址（可选，不填自动识别链动小铺）" />
-            <select v-model="form.auth_mode" class="input"><option value="token">Token</option><option value="cookie">Cookie</option></select>
-            <input v-model="form.note" class="input md:col-span-2" placeholder="备注" />
+            <input v-model="form.note" class="input md:col-span-3" placeholder="备注" />
+            <p v-if="form.auth_mode === 'push'" class="md:col-span-6 text-xs text-gray-500 dark:text-gray-400">推送模式：链动接口被阿里云反爬保护，服务器抓不到。保存后在下方列表点「推送脚本」，安装油猴脚本到浏览器即可自动上报（浏览器天然过反爬）。</p>
           </div>
           <div class="mt-3 flex gap-2">
             <button class="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white" @click="saveMonitor">{{ editingId ? '保存' : '新增' }}</button>
@@ -149,7 +154,8 @@
                 <td class="px-4 py-3 text-center"><span :class="m.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'" class="rounded px-2 py-1 text-xs">{{ m.enabled ? '启用' : '停用' }}</span></td>
                 <td class="px-4 py-3 text-center text-gray-500">{{ m.fetch_pages }} 页 / {{ m.interval_seconds }} 秒</td>
                 <td class="px-4 py-3 text-right">
-                  <button class="mr-2 text-primary-600" @click="runProbe(m)">扫描</button>
+                  <button v-if="m.push_mode" class="mr-2 text-emerald-600" @click="openPush(m)">推送脚本</button>
+                  <button v-else class="mr-2 text-primary-600" @click="runProbe(m)">扫描</button>
                   <button class="mr-2 text-gray-600 dark:text-gray-300" @click="editMonitor(m)">编辑</button>
                   <button class="text-red-600" @click="deleteMonitor(m)">删除</button>
                 </td>
@@ -177,13 +183,56 @@
         </table>
       </section>
     </div>
+
+    <BaseDialog :show="pushModal.open" title="浏览器推送设置" width="wide" @close="pushModal.open = false">
+      <div v-if="pushModal.monitor" class="space-y-4 text-sm">
+        <p class="text-gray-600 dark:text-gray-300">
+          链动小铺接口被阿里云反爬保护，服务器抓不到。装上这个油猴脚本，
+          <b>它在你浏览器里抓数据（天然过反爬）并自动推送到本平台</b>。脚本里已经填好你的专属密钥。
+        </p>
+        <div>
+          <div class="mb-1 font-medium text-gray-700 dark:text-gray-200">推送地址</div>
+          <div class="flex items-center gap-2">
+            <code class="flex-1 truncate rounded bg-gray-100 px-2 py-1 text-xs dark:bg-dark-700">{{ ingestUrl }}</code>
+            <button class="rounded border border-gray-300 px-2 py-1 text-xs dark:border-dark-600 dark:text-gray-200" @click="copyText(ingestUrl)">复制</button>
+          </div>
+        </div>
+        <div>
+          <div class="mb-1 flex items-center justify-between">
+            <span class="font-medium text-gray-700 dark:text-gray-200">推送密钥</span>
+            <button class="text-xs text-red-500 hover:underline" @click="regenerateKey(pushModal.monitor)">重置密钥</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <code class="flex-1 truncate rounded bg-gray-100 px-2 py-1 text-xs dark:bg-dark-700">{{ pushModal.monitor.ingest_key }}</code>
+            <button class="rounded border border-gray-300 px-2 py-1 text-xs dark:border-dark-600 dark:text-gray-200" @click="copyText(pushModal.monitor.ingest_key)">复制</button>
+          </div>
+        </div>
+        <div>
+          <div class="mb-1 flex items-center justify-between">
+            <span class="font-medium text-gray-700 dark:text-gray-200">油猴脚本（已填好密钥）</span>
+            <div class="flex gap-2">
+              <button class="rounded border border-gray-300 px-2 py-1 text-xs dark:border-dark-600 dark:text-gray-200" @click="copyText(userscript)">复制脚本</button>
+              <button class="rounded bg-primary-600 px-2 py-1 text-xs text-white" @click="downloadUserscript()">下载 .user.js</button>
+            </div>
+          </div>
+          <textarea readonly class="h-48 w-full rounded-lg border border-gray-200 bg-gray-50 p-2 font-mono text-[11px] dark:border-dark-600 dark:bg-dark-900 dark:text-gray-200" :value="userscript"></textarea>
+        </div>
+        <ol class="list-decimal space-y-1 pl-5 text-xs text-gray-500 dark:text-gray-400">
+          <li>浏览器装 <a href="https://www.tampermonkey.net/" target="_blank" class="text-primary-600 underline">Tampermonkey</a> 扩展。</li>
+          <li>点「下载 .user.js」或「复制脚本」→ Tampermonkey 新建脚本粘贴 → 保存。</li>
+          <li>登录 <code>pay.ldxp.cn</code> 后台并保持一个标签页打开，脚本会按间隔自动抓取并推送。</li>
+          <li>本页「变化记录 / 全平台搜索」即可看到推送来的商品与涨跌。</li>
+        </ol>
+      </div>
+    </BaseDialog>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
-import cardAPI, { type CardPlatformMonitor, type CardProduct, type CardPriceEvent, type CardSummary, type CardEventType } from '@/api/admin/cardPlatformMonitor'
+import BaseDialog from '@/components/common/BaseDialog.vue'
+import cardAPI, { type CardPlatformMonitor, type CardProduct, type CardPriceEvent, type CardSummary, type CardEventType, type CardAuthMode } from '@/api/admin/cardPlatformMonitor'
 import { useAppStore } from '@/stores'
 
 const tabs = [
@@ -202,7 +251,122 @@ const editingId = ref<number | null>(null)
 const appStore = useAppStore()
 
 const productQuery = reactive({ search: 'gpt', monitor_id: 0, sort: 'priceAsc', in_stock: true })
-const form = reactive({ name: '', platform_type: 'ldxp' as const, base_url: '', shop_url: '', auth_mode: 'token' as const, credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
+const form = reactive({ name: '', platform_type: 'ldxp' as const, base_url: '', shop_url: '', auth_mode: 'push' as CardAuthMode, credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
+
+// 浏览器推送设置弹窗
+const pushModal = reactive({ open: false, monitor: null as CardPlatformMonitor | null })
+const ingestUrl = computed(() => `${window.location.origin}/api/v1/card-ingest`)
+const userscript = computed(() => pushModal.monitor ? buildUserscript(pushModal.monitor, ingestUrl.value) : '')
+
+function openPush(m: CardPlatformMonitor) {
+  pushModal.monitor = m
+  pushModal.open = true
+}
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    appStore.showSuccess('已复制')
+  } catch {
+    appStore.showError('复制失败，请手动选择复制')
+  }
+}
+
+async function regenerateKey(m: CardPlatformMonitor) {
+  if (!confirm('重置后旧脚本立即失效，需要重新安装新脚本，确认？')) return
+  try {
+    const updated = await cardAPI.regenerateKey(m.id)
+    pushModal.monitor = updated
+    await reloadMonitors()
+    appStore.showSuccess('密钥已重置')
+  } catch (err) {
+    appStore.showError(errorText(err, '重置失败'))
+  }
+}
+
+function downloadUserscript() {
+  if (!pushModal.monitor) return
+  const blob = new Blob([userscript.value], { type: 'text/javascript' })
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `ldxp-push-${pushModal.monitor.id}.user.js`
+  a.click()
+  URL.revokeObjectURL(a.href)
+}
+
+function buildUserscript(m: CardPlatformMonitor, url: string): string {
+  const intervalMin = Math.max(1, Math.round((m.interval_seconds || 300) / 60))
+  const pages = Math.max(1, m.fetch_pages || 5)
+  return `// ==UserScript==
+// @name         链动小铺价格推送 - ${m.name}
+// @namespace    sub2api-card-monitor
+// @version      1.0
+// @description  在浏览器抓取链动小铺货源并推送到监控平台（自动过反爬）
+// @match        https://pay.ldxp.cn/*
+// @match        https://www.ldxp.cn/*
+// @grant        GM_xmlhttpRequest
+// @connect      ${(() => { try { return new URL(url).hostname } catch { return '*' } })()}
+// @run-at       document-idle
+// ==/UserScript==
+(function () {
+  'use strict';
+  var INGEST_URL = ${JSON.stringify(url)};
+  var KEY = ${JSON.stringify(m.ingest_key)};
+  var PAGES = ${pages};
+  var INTERVAL_MS = ${intervalMin} * 60 * 1000;
+  var API = '/merchantApi/MyParent/searchGoodsList';
+
+  function getToken() {
+    var keys = ['auth-token','Merchant-Token','merchant-token','token','Authorization'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = localStorage.getItem(keys[i]);
+      if (v) { try { var p = JSON.parse(v); return p.value || p.token || p.access_token || v; } catch (e) { return v; } }
+    }
+    return '';
+  }
+
+  async function fetchPage(token, page) {
+    var resp = await fetch(API, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json;charset=UTF-8', 'Accept': 'application/json, text/plain, */*', 'Merchant-Token': token },
+      body: JSON.stringify({ current: page, pageSize: 50, name: '', goods_type: '', keywords: '' })
+    });
+    var data = await resp.json();
+    if (data.code !== 1) throw new Error(data.msg || data.message || ('code ' + data.code));
+    return (data.data && data.data.list) || [];
+  }
+
+  function push(products) {
+    return new Promise(function (resolve, reject) {
+      GM_xmlhttpRequest({
+        method: 'POST', url: INGEST_URL,
+        headers: { 'Content-Type': 'application/json' },
+        data: JSON.stringify({ key: KEY, products: products }),
+        onload: function (r) { (r.status >= 200 && r.status < 300) ? resolve(r) : reject(new Error('ingest HTTP ' + r.status + ' ' + r.responseText)); },
+        onerror: function () { reject(new Error('ingest network error')); }
+      });
+    });
+  }
+
+  async function run() {
+    try {
+      var token = getToken();
+      if (!token) { console.warn('[ldxp-push] 未登录，跳过'); return; }
+      var all = [];
+      for (var p = 1; p <= PAGES; p++) {
+        var list = await fetchPage(token, p);
+        all = all.concat(list);
+        if (list.length < 50) break;
+      }
+      if (all.length) { await push(all); console.log('[ldxp-push] 已推送 ' + all.length + ' 个商品'); }
+    } catch (e) { console.error('[ldxp-push] 失败', e); }
+  }
+
+  setTimeout(run, 4000);
+  setInterval(run, INTERVAL_MS);
+})();
+`
+}
 
 const groupedProducts = computed(() => {
   const map = new Map<string, CardProduct[]>()
@@ -274,7 +438,7 @@ function editMonitor(m: CardPlatformMonitor) {
 
 function resetForm() {
   editingId.value = null
-  Object.assign(form, { name: '', platform_type: 'ldxp', base_url: '', shop_url: '', auth_mode: 'token', credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
+  Object.assign(form, { name: '', platform_type: 'ldxp', base_url: '', shop_url: '', auth_mode: 'push', credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
 }
 
 async function runProbe(m: CardPlatformMonitor) {

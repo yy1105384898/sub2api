@@ -2,12 +2,24 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"strings"
 	"time"
 )
+
+// newCardIngestKey 生成 32 位十六进制推送密钥。
+func newCardIngestKey() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand 失败极罕见；退化到时间戳避免空 key。
+		return hex.EncodeToString([]byte(time.Now().Format("20060102150405.000000000")))
+	}
+	return hex.EncodeToString(b)
+}
 
 type CardPlatformMonitorService struct {
 	repo      CardPlatformMonitorRepository
@@ -72,6 +84,7 @@ func (s *CardPlatformMonitorService) Create(ctx context.Context, p CardMonitorCr
 		ShopURL:         strings.TrimSpace(p.ShopURL),
 		AuthMode:        normalizeCardAuthMode(p.AuthMode),
 		Credential:      encrypted,
+		IngestKey:       newCardIngestKey(),
 		Enabled:         p.Enabled,
 		IntervalSeconds: interval,
 		FetchPages:      pages,
@@ -179,12 +192,21 @@ func (s *CardPlatformMonitorService) RunProbe(ctx context.Context, id int64) err
 }
 
 func (s *CardPlatformMonitorService) probeMonitor(ctx context.Context, m *CardPlatformMonitor) (*CardProbeResult, error) {
+	// push 模式由浏览器油猴脚本上报，服务端不抓取（链动接口被 ESA acw_sc__v2 反爬挡死）。
+	if m.AuthMode == CardAuthModePush {
+		return nil, ErrCardMonitorProbePushMode
+	}
 	products, raws, err := probeCardProducts(ctx, m)
 	if err != nil {
 		s.markChecked(ctx, m.ID, err.Error())
 		return nil, err
 	}
-	now := time.Now()
+	return s.persistProducts(ctx, m, products, raws, time.Now()), nil
+}
+
+// persistProducts 对一批商品快照做对比(buildCardEvents)+落库+裁剪+标记已检查。
+// probe(服务端抓) 与 ingest(浏览器推) 共用此逻辑。
+func (s *CardPlatformMonitorService) persistProducts(ctx context.Context, m *CardPlatformMonitor, products []*CardProductSnapshot, raws [][]byte, now time.Time) *CardProbeResult {
 	result := &CardProbeResult{Products: make([]*CardProductSnapshot, 0, len(products))}
 	for idx, p := range products {
 		old, findErr := s.repo.FindProduct(ctx, m.ID, p.ExternalProductID)
@@ -193,7 +215,7 @@ func (s *CardPlatformMonitorService) probeMonitor(ctx context.Context, m *CardPl
 		}
 		events := buildCardEvents(m, old, p, now)
 		raw := []byte(`{}`)
-		if idx < len(raws) {
+		if idx < len(raws) && len(raws[idx]) > 0 {
 			raw = raws[idx]
 		}
 		if err := s.repo.UpsertProduct(ctx, p, raw, now); err != nil {
@@ -214,7 +236,45 @@ func (s *CardPlatformMonitorService) probeMonitor(ctx context.Context, m *CardPl
 		slog.Warn("card_monitor: prune events failed", "monitor_id", m.ID, "error", err)
 	}
 	s.markChecked(ctx, m.ID, "")
-	return result, nil
+	return result
+}
+
+// IngestByKey 接收浏览器油猴脚本推送的原始商品列表(链动 goodsList 的 data.list 元素)，
+// 用 ingest_key 定位监控，归一化后走与 probe 相同的对比+落库逻辑。
+func (s *CardPlatformMonitorService) IngestByKey(ctx context.Context, key string, rawItems [][]byte) (*CardProbeResult, error) {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return nil, ErrCardMonitorIngestNotFound
+	}
+	m, err := s.repo.GetByIngestKey(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	products := make([]*CardProductSnapshot, 0, len(rawItems))
+	raws := make([][]byte, 0, len(rawItems))
+	for _, raw := range rawItems {
+		p := normalizeLDXPProduct(m, raw)
+		if p.ExternalProductID == "" {
+			continue
+		}
+		products = append(products, p)
+		raws = append(raws, raw)
+	}
+	return s.persistProducts(ctx, m, products, raws, time.Now()), nil
+}
+
+// RegenerateIngestKey 重置推送密钥(旧脚本随即失效)。
+func (s *CardPlatformMonitorService) RegenerateIngestKey(ctx context.Context, id int64) (*CardPlatformMonitor, error) {
+	m, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	m.IngestKey = newCardIngestKey()
+	if err := s.repo.Update(ctx, m); err != nil {
+		return nil, err
+	}
+	s.decryptInPlace(m)
+	return m, nil
 }
 
 func buildCardEvents(m *CardPlatformMonitor, old, next *CardProductSnapshot, at time.Time) []*CardPriceEvent {
@@ -428,7 +488,7 @@ func validateCardPlatform(v string) error {
 
 func validateCardAuthMode(v string) error {
 	switch normalizeCardAuthMode(v) {
-	case CardAuthModePublic, CardAuthModeToken, CardAuthModeCookie:
+	case CardAuthModePublic, CardAuthModeToken, CardAuthModeCookie, CardAuthModePush:
 		return nil
 	default:
 		return ErrCardMonitorInvalidAuthMode

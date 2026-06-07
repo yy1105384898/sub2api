@@ -1,7 +1,7 @@
 import { apiClient } from '../client'
 
 export type CardPlatformType = 'ldxp'
-export type CardAuthMode = 'public' | 'token' | 'cookie'
+export type CardAuthMode = 'public' | 'token' | 'cookie' | 'push'
 export type CardEventType = 'new_product' | 'price_down' | 'price_up' | 'new_low' | 'restock' | 'sold_out' | 'offline' | 'online' | 'changed'
 
 export interface CardPlatformMonitor {
@@ -14,6 +14,8 @@ export interface CardPlatformMonitor {
   credential_masked: string
   has_credential: boolean
   credential_decrypt_failed: boolean
+  ingest_key: string
+  push_mode: boolean
   enabled: boolean
   interval_seconds: number
   fetch_pages: number
@@ -165,4 +167,9 @@ export async function summary(search?: string): Promise<CardSummary> {
   return data
 }
 
-export default { list, create, update, del, probe, probeAll, products, events, summary }
+export async function regenerateKey(id: number): Promise<CardPlatformMonitor> {
+  const { data } = await apiClient.post<CardPlatformMonitor>(`/admin/card-platform-monitors/${id}/regenerate-key`)
+  return data
+}
+
+export default { list, create, update, del, probe, probeAll, products, events, summary, regenerateKey }

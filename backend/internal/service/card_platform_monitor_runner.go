@@ -79,6 +79,11 @@ func (r *CardPlatformMonitorRunner) Schedule(m *CardPlatformMonitor) {
 		r.Unschedule(m.ID)
 		return
 	}
+	// push 模式由浏览器脚本上报，不做服务端定时探测。
+	if m.AuthMode == CardAuthModePush {
+		r.Unschedule(m.ID)
+		return
+	}
 	interval := time.Duration(m.IntervalSeconds) * time.Second
 	if interval <= 0 {
 		interval = time.Duration(cardDefaultIntervalSeconds) * time.Second

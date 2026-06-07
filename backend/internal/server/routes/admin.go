@@ -14,6 +14,9 @@ func RegisterAdminRoutes(
 	h *handler.Handlers,
 	adminAuth middleware.AdminAuthMiddleware,
 ) {
+	// 发卡平台监控：浏览器油猴脚本推送入口（公开端点，用 ingest_key 鉴权，不走 admin 认证）。
+	v1.POST("/card-ingest", h.Admin.CardPlatformMonitor.Ingest)
+
 	admin := v1.Group("/admin")
 	admin.Use(gin.HandlerFunc(adminAuth))
 	{
@@ -668,6 +671,7 @@ func registerCardPlatformMonitorRoutes(admin *gin.RouterGroup, h *handler.Handle
 		monitors.PUT("/:id", h.Admin.CardPlatformMonitor.Update)
 		monitors.DELETE("/:id", h.Admin.CardPlatformMonitor.Delete)
 		monitors.POST("/:id/probe", h.Admin.CardPlatformMonitor.Probe)
+		monitors.POST("/:id/regenerate-key", h.Admin.CardPlatformMonitor.RegenerateKey)
 	}
 }
 

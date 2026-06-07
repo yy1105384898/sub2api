@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ type cardMonitorRequest struct {
 	PlatformType    string `json:"platform_type" binding:"omitempty,oneof=ldxp"`
 	BaseURL         string `json:"base_url" binding:"max=1000"`
 	ShopURL         string `json:"shop_url" binding:"max=500"`
-	AuthMode        string `json:"auth_mode" binding:"omitempty,oneof=public token cookie"`
+	AuthMode        string `json:"auth_mode" binding:"omitempty,oneof=public token cookie push"`
 	Credential      string `json:"credential" binding:"max=8000"`
 	Enabled         *bool  `json:"enabled"`
 	IntervalSeconds int    `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
@@ -41,7 +42,7 @@ type cardMonitorUpdateRequest struct {
 	PlatformType    *string `json:"platform_type" binding:"omitempty,oneof=ldxp"`
 	BaseURL         *string `json:"base_url" binding:"omitempty,max=1000"`
 	ShopURL         *string `json:"shop_url" binding:"omitempty,max=500"`
-	AuthMode        *string `json:"auth_mode" binding:"omitempty,oneof=public token cookie"`
+	AuthMode        *string `json:"auth_mode" binding:"omitempty,oneof=public token cookie push"`
 	Credential      *string `json:"credential" binding:"omitempty,max=8000"`
 	Enabled         *bool   `json:"enabled"`
 	IntervalSeconds *int    `json:"interval_seconds" binding:"omitempty,min=60,max=86400"`
@@ -233,6 +234,52 @@ func (h *CardPlatformMonitorHandler) Summary(c *gin.Context) {
 	response.Success(c, s)
 }
 
+// Ingest 接收浏览器油猴脚本推送的商品列表（公开端点，用 ingest_key 鉴权）。
+// 请求体：{ "key": "...", "products": [ <链动 goodsList data.list 原始元素>, ... ] }
+// key 也可放在 X-Ingest-Key 头。
+func (h *CardPlatformMonitorHandler) Ingest(c *gin.Context) {
+	var req struct {
+		Key      string            `json:"key"`
+		Products []json.RawMessage `json:"products"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("VALIDATION_ERROR", err.Error()))
+		return
+	}
+	key := strings.TrimSpace(req.Key)
+	if key == "" {
+		key = strings.TrimSpace(c.GetHeader("X-Ingest-Key"))
+	}
+	items := make([][]byte, 0, len(req.Products))
+	for _, p := range req.Products {
+		items = append(items, []byte(p))
+	}
+	result, err := h.svc.IngestByKey(c.Request.Context(), key, items)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{
+		"received": len(items),
+		"products": len(result.Products),
+		"events":   len(result.Events),
+	})
+}
+
+// RegenerateKey 重置某监控的推送密钥。
+func (h *CardPlatformMonitorHandler) RegenerateKey(c *gin.Context) {
+	id, ok := parseCardMonitorID(c)
+	if !ok {
+		return
+	}
+	m, err := h.svc.RegenerateIngestKey(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cardMonitorToResponse(m))
+}
+
 func cardMonitorToResponse(m *service.CardPlatformMonitor) gin.H {
 	if m == nil {
 		return gin.H{}
@@ -247,6 +294,8 @@ func cardMonitorToResponse(m *service.CardPlatformMonitor) gin.H {
 		"auth_mode": m.AuthMode, "credential_masked": maskCredential(m.Credential),
 		"has_credential":            m.Credential != "" || m.CredentialDecryptFailed,
 		"credential_decrypt_failed": m.CredentialDecryptFailed,
+		"ingest_key":                m.IngestKey,
+		"push_mode":                 m.AuthMode == service.CardAuthModePush,
 		"enabled":                   m.Enabled, "interval_seconds": m.IntervalSeconds, "fetch_pages": m.FetchPages,
 		"last_checked_at": lastChecked, "last_error": m.LastError, "note": m.Note,
 		"created_at": m.CreatedAt.Format(time.RFC3339), "updated_at": m.UpdatedAt.Format(time.RFC3339),

@@ -13,6 +13,7 @@ const (
 	CardAuthModePublic = "public"
 	CardAuthModeToken  = "token"
 	CardAuthModeCookie = "cookie"
+	CardAuthModePush   = "push" // 浏览器油猴脚本推送，服务端不抓取
 
 	CardEventNewProduct = "new_product"
 	CardEventPriceDown  = "price_down"
@@ -39,7 +40,10 @@ var (
 	ErrCardMonitorNotFound                = infraerrors.NotFound("CARD_MONITOR_NOT_FOUND", "card platform monitor not found")
 	ErrCardMonitorMissingName             = infraerrors.BadRequest("CARD_MONITOR_MISSING_NAME", "name is required")
 	ErrCardMonitorInvalidPlatform         = infraerrors.BadRequest("CARD_MONITOR_INVALID_PLATFORM", "platform_type must be ldxp")
-	ErrCardMonitorInvalidAuthMode         = infraerrors.BadRequest("CARD_MONITOR_INVALID_AUTH_MODE", "auth_mode must be public/token/cookie")
+	ErrCardMonitorInvalidAuthMode         = infraerrors.BadRequest("CARD_MONITOR_INVALID_AUTH_MODE", "auth_mode must be public/token/cookie/push")
+	ErrCardMonitorIngestNotFound          = infraerrors.NotFound("CARD_MONITOR_INGEST_NOT_FOUND", "invalid ingest key")
+	ErrCardMonitorIngestNotPushMode       = infraerrors.BadRequest("CARD_MONITOR_INGEST_NOT_PUSH", "monitor is not in push mode")
+	ErrCardMonitorProbePushMode           = infraerrors.BadRequest("CARD_MONITOR_PROBE_PUSH", "push-mode monitor is fed by the browser userscript; no server-side probe")
 	ErrCardMonitorInvalidBaseURL          = infraerrors.BadRequest("CARD_MONITOR_INVALID_BASE_URL", "base_url must be a valid https URL")
 	ErrCardMonitorInvalidInterval         = infraerrors.BadRequest("CARD_MONITOR_INVALID_INTERVAL", "interval_seconds must be in [60, 86400]")
 	ErrCardMonitorInvalidFetchPages       = infraerrors.BadRequest("CARD_MONITOR_INVALID_FETCH_PAGES", "fetch_pages must be in [1, 500]")
@@ -55,6 +59,7 @@ type CardPlatformMonitor struct {
 	ShopURL                 string
 	AuthMode                string
 	Credential              string
+	IngestKey               string
 	Enabled                 bool
 	IntervalSeconds         int
 	FetchPages              int
@@ -180,6 +185,7 @@ type CardPlatformMonitorRepository interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, params CardMonitorListParams) ([]*CardPlatformMonitor, int64, error)
 	ListEnabled(ctx context.Context) ([]*CardPlatformMonitor, error)
+	GetByIngestKey(ctx context.Context, key string) (*CardPlatformMonitor, error)
 	MarkChecked(ctx context.Context, id int64, checkedAt time.Time, lastErr string) error
 	ListProducts(ctx context.Context, params CardProductSearchParams) ([]*CardProductSnapshot, int64, error)
 	FindProduct(ctx context.Context, monitorID int64, externalID string) (*CardProductSnapshot, error)

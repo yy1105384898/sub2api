@@ -466,18 +466,6 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
-    path: '/admin/channels/card-platform-monitor',
-    name: 'AdminCardPlatformMonitor',
-    component: () => import('@/views/admin/CardPlatformMonitorView.vue'),
-    meta: {
-      requiresAuth: true,
-      requiresAdmin: true,
-      title: 'Card Platform Monitor',
-      titleKey: 'admin.cardPlatformMonitor.title',
-      descriptionKey: 'admin.cardPlatformMonitor.description'
-    }
-  },
-  {
     path: '/monitor',
     name: 'ChannelStatus',
     component: () => import('@/views/user/ChannelStatusView.vue'),

@@ -387,7 +387,6 @@ export default {
     channelPricing: '渠道定价',
     channelMonitor: '渠道监控',
     relayMonitor: '中转站监控',
-    cardPlatformMonitor: '发卡平台监控',
     channelStatus: '渠道状态',
     riskControl: '风控中心',
   },
@@ -2928,10 +2927,6 @@ export default {
     },
 
     // Card Platform Monitor
-    cardPlatformMonitor: {
-      title: '发卡平台监控',
-      description: '全平台发卡商品搜索、比价和价格库存变化监控'
-    },
 
     // Channel Monitor
     channelMonitor: {

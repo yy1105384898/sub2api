@@ -387,7 +387,6 @@ export default {
     channelPricing: 'Channel Pricing',
     channelMonitor: 'Channel Monitor',
     relayMonitor: 'Relay Monitor',
-    cardPlatformMonitor: 'Card Platform Monitor',
     channelStatus: 'Channel Status',
     riskControl: 'Risk Control',
   },
@@ -2851,10 +2850,6 @@ export default {
     },
 
     // Card Platform Monitor
-    cardPlatformMonitor: {
-      title: 'Card Platform Monitor',
-      description: 'Search, compare, and monitor card platform products'
-    },
 
     // Channel Monitor
     channelMonitor: {

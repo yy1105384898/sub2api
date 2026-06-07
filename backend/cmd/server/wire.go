@@ -99,7 +99,6 @@ func provideCleanup(
 	paymentOrderExpiry *service.PaymentOrderExpiryService,
 	channelMonitorRunner *service.ChannelMonitorRunner,
 	relayMonitorRunner *service.RelayMonitorRunner,
-	cardPlatformMonitorRunner *service.CardPlatformMonitorRunner,
 	quotaFlusher *service.UserPlatformQuotaUsageFlusher,
 ) func() {
 	return func() {
@@ -252,12 +251,6 @@ func provideCleanup(
 			{"RelayMonitorRunner", func() error {
 				if relayMonitorRunner != nil {
 					relayMonitorRunner.Stop()
-				}
-				return nil
-			}},
-			{"CardPlatformMonitorRunner", func() error {
-				if cardPlatformMonitorRunner != nil {
-					cardPlatformMonitorRunner.Stop()
 				}
 				return nil
 			}},

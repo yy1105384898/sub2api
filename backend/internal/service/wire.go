@@ -585,8 +585,6 @@ var ProviderSet = wire.NewSet(
 	ProvideChannelMonitorRunner,
 	ProvideRelayMonitorService,
 	ProvideRelayMonitorRunner,
-	NewCardPlatformMonitorService,
-	ProvideCardPlatformMonitorRunner,
 	NewChannelMonitorRequestTemplateService,
 	ProvideUserPlatformQuotaUsageFlusher,
 )
@@ -665,10 +663,3 @@ func ProvideRelayMonitorRunner(svc *RelayMonitorService) *RelayMonitorRunner {
 	return r
 }
 
-// ProvideCardPlatformMonitorRunner 创建并启动发卡平台监控调度器。
-func ProvideCardPlatformMonitorRunner(svc *CardPlatformMonitorService) *CardPlatformMonitorRunner {
-	r := NewCardPlatformMonitorRunner(svc)
-	svc.SetScheduler(r)
-	r.Start()
-	return r
-}

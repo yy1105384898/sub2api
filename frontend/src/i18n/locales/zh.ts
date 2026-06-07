@@ -2914,6 +2914,8 @@ export default {
       baseUrlRequired: '请先填写站点地址',
       deleteTitle: '删除监控站点',
       deleteConfirm: '确定删除站点「{name}」及其全部历史记录吗？',
+      deleteChangeTitle: '删除变化记录',
+      deleteChangeConfirm: '确定删除「{site} / {group}」这条变化记录吗？不会影响站点配置和当前倍率。',
       loadError: '加载失败',
       probeFailed: '探测失败',
       fetchGroupsFailed: '拉取分组失败',

@@ -2837,6 +2837,8 @@ export default {
       baseUrlRequired: 'Please enter the base URL first',
       deleteTitle: 'Delete Site',
       deleteConfirm: 'Delete site "{name}" and all its history?',
+      deleteChangeTitle: 'Delete Change Record',
+      deleteChangeConfirm: 'Delete the change record for "{site} / {group}"? This will not affect site config or current rates.',
       loadError: 'Failed to load',
       probeFailed: 'Probe failed',
       fetchGroupsFailed: 'Failed to fetch groups',

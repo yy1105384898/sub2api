@@ -205,6 +205,11 @@ export async function listChanges(
   return data
 }
 
+/** Delete one rate-change history record. */
+export async function deleteChange(id: number): Promise<void> {
+  await apiClient.delete(`/admin/relay-monitors/changes/${id}`)
+}
+
 /** Get up/down announcement counts (top summary cards). */
 export async function summary(search?: string): Promise<RelaySummary> {
   const { data } = await apiClient.get<RelaySummary>('/admin/relay-monitors/summary', {
@@ -231,6 +236,7 @@ export const relayMonitorAPI = {
   probeAll,
   fetchGroups,
   listChanges,
+  deleteChange,
   summary,
   overview,
 }

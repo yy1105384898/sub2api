@@ -332,6 +332,14 @@ func (r *relayMonitorRepository) SummarizeChanges(ctx context.Context, params se
 	return summary, nil
 }
 
+func (r *relayMonitorRepository) DeleteChange(ctx context.Context, id int64) error {
+	client := clientFromContext(ctx, r.client)
+	if err := client.RelayRateChange.DeleteOneID(id).Exec(ctx); err != nil {
+		return translatePersistenceError(err, service.ErrRelayMonitorNotFound, nil)
+	}
+	return nil
+}
+
 // buildChangeQuery 根据 params 组装变化历史查询（monitor/direction/search 过滤）。
 func (r *relayMonitorRepository) buildChangeQuery(params service.RelayRateChangeListParams) *dbent.RelayRateChangeQuery {
 	q := r.client.RelayRateChange.Query()

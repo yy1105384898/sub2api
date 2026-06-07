@@ -220,6 +220,7 @@ type RelayMonitorRepository interface {
 	InsertChanges(ctx context.Context, rows []*RelayRateChange) error
 	ListChanges(ctx context.Context, params RelayRateChangeListParams) ([]*RelayRateChange, int64, error)
 	SummarizeChanges(ctx context.Context, params RelayRateChangeListParams) (RelayChangeSummary, error)
+	DeleteChange(ctx context.Context, id int64) error
 	// PruneChangesForMonitor 仅保留某监控最新 keep 条变化，物理删除更早的。
 	PruneChangesForMonitor(ctx context.Context, monitorID int64, keep int) error
 }

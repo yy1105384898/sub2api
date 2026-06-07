@@ -355,6 +355,7 @@
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colChange') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colTime') }}</th>
                 <th class="px-4 py-3 font-medium">{{ t('admin.relayMonitor.colContent') }}</th>
+                <th class="px-4 py-3 font-medium text-right">{{ t('admin.relayMonitor.colActions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -398,9 +399,12 @@
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ formatTime(row.detected_at) }}</td>
                 <td class="px-4 py-3 max-w-xs truncate text-gray-500" :title="row.content">{{ row.content }}</td>
+                <td class="px-4 py-3 text-right">
+                  <button class="text-red-600 hover:underline" @click="confirmDeleteChange(row)">{{ t('common.delete') }}</button>
+                </td>
               </tr>
               <tr v-if="!changesLoading && filteredChanges.length === 0">
-                <td colspan="12" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noChanges') }}</td>
+                <td colspan="13" class="px-4 py-10 text-center text-gray-400">{{ t('admin.relayMonitor.noChanges') }}</td>
               </tr>
             </tbody>
           </table>
@@ -593,6 +597,16 @@
       @cancel="deleting = null"
     />
 
+    <ConfirmDialog
+      :show="!!deletingChange"
+      :title="t('admin.relayMonitor.deleteChangeTitle')"
+      :message="deletingChange ? t('admin.relayMonitor.deleteChangeConfirm', { site: deletingChange.site, group: deletingChange.group_name }) : ''"
+      :confirm-text="t('common.delete')"
+      danger
+      @confirm="doDeleteChange"
+      @cancel="deletingChange = null"
+    />
+
     <!-- 倍率历史折线 -->
     <BaseDialog :show="history.open" :title="t('admin.relayMonitor.historyTitle')" width="wide" @close="history.open = false">
       <div class="space-y-3">
@@ -719,6 +733,7 @@ const saving = ref(false)
 const fetchingGroups = ref(false)
 const availableGroups = ref<RelayGroupRate[]>([])
 const deleting = ref<RelayMonitor | null>(null)
+const deletingChange = ref<RelayRateChange | null>(null)
 
 const form = reactive({
   name: '',
@@ -1310,6 +1325,27 @@ async function doDelete() {
     appStore.showSuccess(t('common.deleteSuccess'))
     deleting.value = null
     await loadMonitors()
+  } catch (err) {
+    appStore.showError(extractApiErrorMessage(err, t('common.error')))
+  }
+}
+
+function confirmDeleteChange(row: RelayRateChange) {
+  deletingChange.value = row
+}
+
+async function doDeleteChange() {
+  if (!deletingChange.value) return
+  try {
+    await relayMonitorAPI.deleteChange(deletingChange.value.id)
+    appStore.showSuccess(t('common.deleted'))
+    deletingChange.value = null
+    if (changes.value.length === 1 && changesPage.value > 1) {
+      changesPage.value -= 1
+    }
+    await loadChanges()
+    await loadSummary()
+    await loadOverview()
   } catch (err) {
     appStore.showError(extractApiErrorMessage(err, t('common.error')))
   }

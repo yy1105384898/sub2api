@@ -244,6 +244,14 @@ func (s *RelayMonitorService) Summary(ctx context.Context, search string) (Relay
 	return s.repo.SummarizeChanges(ctx, RelayRateChangeListParams{Search: strings.TrimSpace(search)})
 }
 
+// DeleteChange 删除单条倍率变化历史，避免公告记录长期堆积。
+func (s *RelayMonitorService) DeleteChange(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return ErrRelayMonitorNotFound
+	}
+	return s.repo.DeleteChange(ctx, id)
+}
+
 // Overview 倍率总览：所有被跟踪分组的当前倍率，变化过的附带涨跌并排在前面。
 func (s *RelayMonitorService) Overview(ctx context.Context, search string) ([]*RelayGroupOverview, error) {
 	return s.repo.ListOverview(ctx, strings.TrimSpace(search))

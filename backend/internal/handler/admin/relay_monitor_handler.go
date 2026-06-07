@@ -192,6 +192,15 @@ func parseRelayMonitorID(c *gin.Context) (int64, bool) {
 	return id, true
 }
 
+func parseRelayChangeID(c *gin.Context) (int64, bool) {
+	id, err := strconv.ParseInt(c.Param("change_id"), 10, 64)
+	if err != nil || id <= 0 {
+		response.ErrorFrom(c, infraerrors.BadRequest("INVALID_RELAY_CHANGE_ID", "invalid relay change id"))
+		return 0, false
+	}
+	return id, true
+}
+
 // --- Handlers ---
 
 // List GET /api/v1/admin/relay-monitors
@@ -401,6 +410,20 @@ func (h *RelayMonitorHandler) Changes(c *gin.Context) {
 		out = append(out, relayChangeToResponse(ch))
 	}
 	response.Paginated(c, out, total, page, pageSize)
+}
+
+// DeleteChange DELETE /api/v1/admin/relay-monitors/changes/:change_id
+// 删除单条倍率变化历史，不影响站点配置和当前倍率快照。
+func (h *RelayMonitorHandler) DeleteChange(c *gin.Context) {
+	id, ok := parseRelayChangeID(c)
+	if !ok {
+		return
+	}
+	if err := h.monitorService.DeleteChange(c.Request.Context(), id); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"deleted": true})
 }
 
 type relayOverviewResponse struct {

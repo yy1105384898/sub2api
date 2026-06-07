@@ -30,11 +30,10 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 	if strings.TrimSpace(m.Credential) == "" {
 		return nil, nil, ErrCardMonitorMissingCredential
 	}
-	base, err := url.Parse(normalizeEndpoint(m.BaseURL))
+	apiURL, err := buildLDXPGoodsListURL(m.BaseURL)
 	if err != nil {
 		return nil, nil, err
 	}
-	apiURL := base.ResolveReference(&url.URL{Path: "/merchantApi/MyParent/searchGoodsList"}).String()
 	pages := m.FetchPages
 	if pages <= 0 {
 		pages = cardDefaultFetchPages
@@ -92,6 +91,9 @@ func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]a
 	}
 	var payload map[string]any
 	if err := json.Unmarshal(data, &payload); err != nil {
+		if strings.Contains(strings.TrimSpace(string(data[:minInt(len(data), 200)])), "<") {
+			return nil, fmt.Errorf("链动小铺响应不是 JSON：请把“站点地址”填成实际 Request URL 或接口域名，当前地址返回了网页")
+		}
 		return nil, fmt.Errorf("链动小铺响应不是 JSON：%w", err)
 	}
 	if code := intFromAny(payload["code"], 0); code != 1 {
@@ -105,6 +107,24 @@ func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]a
 		return nil, fmt.Errorf("%s", msg)
 	}
 	return payload, nil
+}
+
+func buildLDXPGoodsListURL(rawBase string) (string, error) {
+	rawBase = normalizeEndpoint(rawBase)
+	if rawBase == "" {
+		return "", fmt.Errorf("站点地址不能为空")
+	}
+	u, err := url.Parse(rawBase)
+	if err != nil {
+		return "", err
+	}
+	if strings.Contains(u.Path, "/merchantApi/MyParent/searchGoodsList") {
+		return u.String(), nil
+	}
+	u.Path = "/merchantApi/MyParent/searchGoodsList"
+	u.RawQuery = ""
+	u.Fragment = ""
+	return u.String(), nil
 }
 
 func extractLDXPList(payload map[string]any) [][]byte {
@@ -223,6 +243,13 @@ func firstIntPtr(m map[string]any, keys ...string) *int64 {
 		}
 	}
 	return nil
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func floatFromAny(v any) (float64, bool) {

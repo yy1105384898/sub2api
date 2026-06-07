@@ -180,11 +180,13 @@ type RelayChangeSummary struct {
 type RelayGroupOverview struct {
 	MonitorID   int64      `json:"monitor_id"`
 	Site        string     `json:"site"`
+	BaseURL     string     `json:"base_url"`
 	System      string     `json:"system"`
 	Vendor      string     `json:"vendor"`
 	GroupName   string     `json:"group_name"`
 	CurrentRate float64    `json:"current_rate"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+	Removed     bool       `json:"removed"`
 	HasChange   bool       `json:"has_change"`
 	OldRate     float64    `json:"old_rate"`
 	NewRate     float64    `json:"new_rate"`

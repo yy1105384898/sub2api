@@ -308,18 +308,38 @@ func (s *RelayMonitorService) probeMonitor(ctx context.Context, m *RelayMonitor)
 	}
 
 	result := &RelayProbeResult{Rates: make([]RelayGroupRate, 0, len(rates))}
+	seen := make(map[string]struct{}, len(rates))
 	for _, gr := range rates {
 		if len(watched) > 0 {
 			if _, ok := watched[gr.GroupName]; !ok {
 				continue // 只跟踪选定分组
 			}
 		}
+		seen[gr.GroupName] = struct{}{}
 		result.Rates = append(result.Rates, gr)
 		if change := buildRateChange(m, gr, old, now); change != nil {
 			result.Changes = append(result.Changes, change)
 		}
 		if err := s.repo.UpsertSnapshot(ctx, m.ID, gr.GroupName, gr.Rate, now); err != nil {
 			slog.Warn("relay_monitor: upsert snapshot failed", "monitor_id", m.ID, "group", gr.GroupName, "error", err)
+		}
+	}
+	for groupName, oldRate := range old {
+		if len(watched) > 0 {
+			if _, ok := watched[groupName]; !ok {
+				continue
+			}
+		}
+		if _, ok := seen[groupName]; ok {
+			continue
+		}
+		if oldRate < 0 {
+			continue
+		}
+		change := buildRemovedGroupChange(m, groupName, oldRate, now)
+		result.Changes = append(result.Changes, change)
+		if err := s.repo.UpsertSnapshot(ctx, m.ID, groupName, -1, now); err != nil {
+			slog.Warn("relay_monitor: mark removed snapshot failed", "monitor_id", m.ID, "group", groupName, "error", err)
 		}
 	}
 
@@ -348,6 +368,21 @@ func buildRateChange(m *RelayMonitor, gr RelayGroupRate, old map[string]float64,
 		NewRate:    gr.Rate,
 		Direction:  direction,
 		Content:    fmt.Sprintf("分组倍率从 %s 变为 %s", formatRate(prev), formatRate(gr.Rate)),
+		DetectedAt: now,
+	}
+}
+
+func buildRemovedGroupChange(m *RelayMonitor, groupName string, oldRate float64, now time.Time) *RelayRateChange {
+	return &RelayRateChange{
+		MonitorID:  m.ID,
+		Site:       m.Name,
+		System:     m.System,
+		Vendor:     m.Vendor,
+		GroupName:  groupName,
+		OldRate:    oldRate,
+		NewRate:    0,
+		Direction:  RelayDirectionDown,
+		Content:    "分组已停用",
 		DetectedAt: now,
 	}
 }

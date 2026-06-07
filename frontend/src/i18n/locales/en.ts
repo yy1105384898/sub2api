@@ -2778,6 +2778,7 @@ export default {
       up: 'Up',
       down: 'Down',
       stable: 'Stable',
+      disabled: 'Disabled',
       siteBoardTitle: 'Site Overview',
       siteBoardHint: 'Grouped by site: site as a colored header row, group rates listed underneath; changed groups highlighted red/green.',
       groupsUnit: 'groups',

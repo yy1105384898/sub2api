@@ -210,8 +210,8 @@ func (r *relayMonitorRepository) DeleteSnapshotsNotIn(ctx context.Context, monit
 // 变化过的排前面（changed_at 倒序），其余按 site/group。search 模糊匹配 site/vendor/group。
 func (r *relayMonitorRepository) ListOverview(ctx context.Context, search string) ([]*service.RelayGroupOverview, error) {
 	const q = `
-		SELECT s.monitor_id, m.name AS site, m.system, m.vendor, s.group_name,
-		       s.rate AS current_rate, s.updated_at,
+		SELECT s.monitor_id, m.name AS site, m.base_url, m.system, m.vendor, s.group_name,
+		       s.rate AS current_rate, s.updated_at, (s.rate < 0) AS removed,
 		       c.old_rate, c.new_rate, c.direction, c.detected_at
 		FROM relay_rate_snapshots s
 		JOIN relay_monitors m ON m.id = s.monitor_id
@@ -237,8 +237,8 @@ func (r *relayMonitorRepository) ListOverview(ctx context.Context, search string
 		var oldRate, newRate sql.NullFloat64
 		var direction sql.NullString
 		var changedAt sql.NullTime
-		if err := rows.Scan(&o.MonitorID, &o.Site, &o.System, &o.Vendor, &o.GroupName,
-			&o.CurrentRate, &o.UpdatedAt, &oldRate, &newRate, &direction, &changedAt); err != nil {
+		if err := rows.Scan(&o.MonitorID, &o.Site, &o.BaseURL, &o.System, &o.Vendor, &o.GroupName,
+			&o.CurrentRate, &o.UpdatedAt, &o.Removed, &oldRate, &newRate, &direction, &changedAt); err != nil {
 			return nil, fmt.Errorf("scan overview row: %w", err)
 		}
 		if changedAt.Valid {

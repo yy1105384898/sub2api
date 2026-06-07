@@ -406,10 +406,12 @@ func (h *RelayMonitorHandler) Changes(c *gin.Context) {
 type relayOverviewResponse struct {
 	MonitorID   int64   `json:"monitor_id"`
 	Site        string  `json:"site"`
+	BaseURL     string  `json:"base_url"`
 	System      string  `json:"system"`
 	Vendor      string  `json:"vendor"`
 	GroupName   string  `json:"group_name"`
 	CurrentRate float64 `json:"current_rate"`
+	Removed     bool    `json:"removed"`
 	HasChange   bool    `json:"has_change"`
 	OldRate     float64 `json:"old_rate"`
 	NewRate     float64 `json:"new_rate"`
@@ -430,10 +432,12 @@ func (h *RelayMonitorHandler) Overview(c *gin.Context) {
 		row := relayOverviewResponse{
 			MonitorID:   o.MonitorID,
 			Site:        o.Site,
+			BaseURL:     o.BaseURL,
 			System:      o.System,
 			Vendor:      o.Vendor,
 			GroupName:   o.GroupName,
 			CurrentRate: o.CurrentRate,
+			Removed:     o.Removed,
 			HasChange:   o.HasChange,
 			OldRate:     o.OldRate,
 			NewRate:     o.NewRate,

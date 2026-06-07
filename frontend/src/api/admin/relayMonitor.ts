@@ -60,10 +60,12 @@ export interface RelaySummary {
 export interface RelayOverviewRow {
   monitor_id: number
   site: string
+  base_url: string
   system: RelaySystem
   vendor: string
   group_name: string
   current_rate: number
+  removed: boolean
   has_change: boolean
   old_rate: number
   new_rate: number

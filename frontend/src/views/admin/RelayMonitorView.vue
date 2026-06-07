@@ -182,8 +182,14 @@
                   </td>
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-1.5">
-                      <span class="font-medium text-gray-900 dark:text-white">{{ row.site }}</span>
+                      <a
+                        :href="siteURL(row)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="font-medium text-gray-900 hover:text-primary-600 hover:underline dark:text-white dark:hover:text-primary-300"
+                      >{{ row.site }}</a>
                       <span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
+                      <span v-if="row.removed" class="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-dark-600 dark:text-gray-300">{{ t('admin.relayMonitor.disabled') }}</span>
                     </div>
                   </td>
                   <td class="max-w-[200px] truncate px-3 py-2.5" :title="t('admin.relayMonitor.viewHistory')">
@@ -191,7 +197,7 @@
                   </td>
                   <td class="px-3 py-2.5">
                     <div class="flex items-center gap-2">
-                      <span class="font-semibold tabular-nums" :class="row.current_rate === g.minRate ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100'">{{ formatRate(row.current_rate) }}</span>
+                      <span class="font-semibold tabular-nums" :class="row.removed ? 'text-gray-400 dark:text-gray-500' : (row.current_rate === g.minRate ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-gray-100')">{{ row.removed ? t('admin.relayMonitor.disabled') : formatRate(row.current_rate) }}</span>
                       <div class="hidden h-1.5 w-20 overflow-hidden rounded bg-gray-100 md:block dark:bg-dark-700">
                         <div class="h-full rounded" :class="row.current_rate === g.minRate ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-dark-500'" :style="{ width: rateBarWidth(row.current_rate, g.maxRate) }"></div>
                       </div>
@@ -205,7 +211,7 @@
                     >
                       {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
                     </span>
-                    <span v-else class="text-gray-300 dark:text-gray-600">—</span>
+                    <span v-else class="text-gray-300 dark:text-gray-600">{{ row.removed ? t('admin.relayMonitor.disabled') : '—' }}</span>
                   </td>
                   <td class="whitespace-nowrap px-3 py-2.5 text-gray-500">{{ row.changed_at ? formatTime(row.changed_at) : '-' }}</td>
                 </tr>
@@ -260,7 +266,12 @@
                       @click="toggleFav(site.site)"
                     >★</button>
                     <span class="h-2.5 w-2.5 flex-shrink-0 rounded-full" :class="siteTone(siteIndex).dot"></span>
-                    <span class="text-[15px] font-bold text-gray-900 dark:text-white">{{ site.site }}</span>
+                    <a
+                      :href="site.url"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-[15px] font-bold text-gray-900 hover:text-primary-600 hover:underline dark:text-white dark:hover:text-primary-300"
+                    >{{ site.site }}</a>
                     <span class="rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.system }}</span>
                     <span class="rounded bg-white/70 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 dark:bg-dark-950/40 dark:text-gray-200">{{ site.vendor || t('admin.relayMonitor.noVendor') }}</span>
                     <span class="ml-auto flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -277,7 +288,9 @@
                 v-for="row in site.rows"
                 :key="row.monitor_id + '/' + row.group_name"
                 class="border-b border-gray-100 last:border-0 dark:border-dark-700/50"
-                :class="row.has_change
+                :class="row.removed
+                  ? 'bg-gray-100 text-gray-500 dark:bg-dark-700/60 dark:text-gray-400'
+                  : row.has_change
                   ? (row.direction === 'up' ? 'bg-red-50/70 dark:bg-red-950/15' : 'bg-green-50/70 dark:bg-green-950/15')
                   : siteTone(siteIndex).row"
               >
@@ -285,15 +298,17 @@
                   <div class="flex items-center gap-1.5">
                     <span class="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-dark-700 dark:text-gray-300">{{ row.vendor || t('admin.relayMonitor.noVendor') }}</span>
                     <span class="rounded px-2 py-0.5 text-xs font-medium" :class="planTier(row.group_name).cls">{{ planTier(row.group_name).label }}</span>
+                    <span v-if="row.removed" class="rounded bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-dark-600 dark:text-gray-300">{{ t('admin.relayMonitor.disabled') }}</span>
                   </div>
                 </td>
                 <td class="px-4 py-2.5">
                   <button class="font-medium text-gray-900 hover:text-primary-600 hover:underline dark:text-white" :title="t('admin.relayMonitor.viewHistory')" @click="openHistory(row)">{{ row.group_name }}</button>
                 </td>
-                <td class="px-4 py-2.5 font-semibold text-gray-900 dark:text-gray-100">{{ formatRate(row.current_rate) }}</td>
+                <td class="px-4 py-2.5 font-semibold" :class="row.removed ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'">{{ row.removed ? t('admin.relayMonitor.disabled') : formatRate(row.current_rate) }}</td>
                 <td class="px-4 py-2.5">
+                  <span v-if="row.removed" class="font-medium text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.disabled') }}</span>
                   <span
-                    v-if="row.has_change"
+                    v-else-if="row.has_change"
                     class="font-medium"
                     :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
                   >
@@ -360,7 +375,14 @@
                     {{ row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down') }}
                   </span>
                 </td>
-                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ row.site }}</td>
+                <td class="px-4 py-3 font-medium">
+                  <a
+                    :href="siteURL(row)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-gray-900 hover:text-primary-600 hover:underline dark:text-white dark:hover:text-primary-300"
+                  >{{ row.site }}</a>
+                </td>
                 <td class="px-4 py-3">
                   <span class="inline-flex items-center rounded bg-indigo-50 px-2 py-0.5 text-xs text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
                 </td>
@@ -421,7 +443,12 @@
             <tbody>
               <tr v-for="m in monitors" :key="m.id" class="border-b border-gray-100 last:border-0 dark:border-dark-700/60">
                 <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                  {{ m.name }}
+                  <a
+                    :href="m.base_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-primary-600 hover:underline dark:hover:text-primary-300"
+                  >{{ m.name }}</a>
                   <span v-if="m.credential_decrypt_failed" class="ml-1 text-xs text-red-500">⚠</span>
                   <p v-if="m.last_error" class="text-xs text-red-500 truncate max-w-[200px]" :title="m.last_error">{{ m.last_error }}</p>
                 </td>
@@ -727,6 +754,7 @@ interface PlanTier {
 interface OverviewSite {
   key: string
   site: string
+  url: string
   system: RelaySystem
   vendor: string
   rows: RelayOverviewRow[]
@@ -834,6 +862,7 @@ const overviewSites = computed<OverviewSite[]>(() => {
     return {
       key,
       site: first.site,
+      url: siteURL(first),
       system: first.system,
       vendor: first.vendor,
       rows: sortedRows,
@@ -863,6 +892,7 @@ interface CompareGroup {
   maxRate: number
 }
 function compareRowSorter(a: RelayOverviewRow, b: RelayOverviewRow): number {
+  if (a.removed !== b.removed) return a.removed ? 1 : -1
   if (compareSort.value === 'rate_desc') {
     return b.current_rate - a.current_rate || a.site.localeCompare(b.site)
   }
@@ -886,8 +916,8 @@ const compareGroups = computed<CompareGroup[]>(() => {
     vendor: normalizeVendor(rows[0].vendor),
     tier: planTier(rows[0].group_name),
     rows: [...rows].sort(compareRowSorter),
-    minRate: Math.min(...rows.map((r) => r.current_rate)),
-    maxRate: Math.max(...rows.map((r) => r.current_rate), 0),
+    minRate: activeRateStats(rows).minRate,
+    maxRate: activeRateStats(rows).maxRate,
   }))
   groups.sort((a, b) =>
     a.vendor.localeCompare(b.vendor) ||
@@ -964,6 +994,7 @@ function uniqueSorted(values: string[]): string[] {
 }
 
 function compareOverviewRows(a: RelayOverviewRow, b: RelayOverviewRow): number {
+  if (a.removed !== b.removed) return a.removed ? 1 : -1
   if (a.has_change !== b.has_change) return a.has_change ? -1 : 1
   const vendorCmp = normalizeVendor(a.vendor).localeCompare(normalizeVendor(b.vendor))
   if (vendorCmp !== 0) return vendorCmp
@@ -986,6 +1017,20 @@ function isEmail(s: string): boolean {
 function formatRate(r: number): string {
   if (r === null || r === undefined || Number.isNaN(r)) return '-'
   return `${parseFloat(r.toFixed(6))}x`
+}
+
+function siteURL(row: { base_url?: string; monitor_id?: number; site?: string }): string {
+  const raw = row.base_url || monitors.value.find((m) => m.id === row.monitor_id || m.name === row.site)?.base_url || ''
+  return raw || '#'
+}
+
+function activeRateStats(rows: RelayOverviewRow[]): { minRate: number; maxRate: number } {
+  const activeRates = rows.filter((r) => !r.removed).map((r) => r.current_rate)
+  if (activeRates.length === 0) return { minRate: Number.NaN, maxRate: 0 }
+  return {
+    minRate: Math.min(...activeRates),
+    maxRate: Math.max(...activeRates, 0),
+  }
 }
 
 function formatTime(s: string): string {

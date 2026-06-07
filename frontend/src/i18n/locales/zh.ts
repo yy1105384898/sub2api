@@ -2855,6 +2855,7 @@ export default {
       up: '涨',
       down: '跌',
       stable: '稳定',
+      disabled: '停用',
       siteBoardTitle: '按站点总览',
       siteBoardHint: '按站点分组的列表：站点为一级标题（同色系背景），下面列出各分组当前倍率；变化的分组涨红跌绿高亮。',
       groupsUnit: '个分组',

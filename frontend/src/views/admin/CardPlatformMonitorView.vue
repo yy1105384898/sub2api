@@ -304,6 +304,7 @@ function buildUserscript(m: CardPlatformMonitor, url: string): string {
 // @version      1.0
 // @description  在浏览器抓取链动小铺货源并推送到监控平台（自动过反爬）
 // @match        https://pay.ldxp.cn/*
+// @match        https://admin.ldxp.cn/*
 // @match        https://www.ldxp.cn/*
 // @grant        GM_xmlhttpRequest
 // @connect      ${(() => { try { return new URL(url).hostname } catch { return '*' } })()}
@@ -318,12 +319,32 @@ function buildUserscript(m: CardPlatformMonitor, url: string): string {
   var API = '/merchantApi/MyParent/searchGoodsList';
 
   function getToken() {
-    var keys = ['auth-token','Merchant-Token','merchant-token','token','Authorization'];
-    for (var i = 0; i < keys.length; i++) {
-      var v = localStorage.getItem(keys[i]);
-      if (v) { try { var p = JSON.parse(v); return p.value || p.token || p.access_token || v; } catch (e) { return v; } }
+    var keys = ['auth-token','Merchant-Token','merchant-token','token','Authorization','access_token'];
+    var stores = [localStorage, sessionStorage];
+    for (var s = 0; s < stores.length; s++) {
+      var store = stores[s];
+      for (var i = 0; i < keys.length; i++) {
+        var v = store.getItem(keys[i]);
+        var token = readTokenValue(v);
+        if (token) return token;
+      }
+      for (var j = 0; j < store.length; j++) {
+        var key = store.key(j) || '';
+        if (!/token|auth|merchant/i.test(key)) continue;
+        var token2 = readTokenValue(store.getItem(key));
+        if (token2) return token2;
+      }
     }
     return '';
+  }
+
+  function readTokenValue(v) {
+    if (!v) return '';
+    try {
+      var p = JSON.parse(v);
+      v = p.value || p.token || p.access_token || p.auth_token || p.merchantToken || v;
+    } catch (e) {}
+    return String(v).replace(/^Bearer\\s+/i, '').trim();
   }
 
   async function fetchPage(token, page) {

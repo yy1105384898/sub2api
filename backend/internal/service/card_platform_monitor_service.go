@@ -422,7 +422,8 @@ func applyCardUpdate(m *CardPlatformMonitor, p CardMonitorUpdateParams) error {
 
 func validateCardBaseURL(raw string) error {
 	raw = strings.TrimSpace(raw)
-	if raw == "" {
+	// 空 或 自动哨兵值(ldxp) 表示「自动识别链动小铺」，合法。
+	if raw == "" || raw == CardPlatformLDXP {
 		return nil
 	}
 	u, err := url.Parse(raw)

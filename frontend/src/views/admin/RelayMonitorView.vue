@@ -485,22 +485,39 @@
             <input v-model.number="form.interval_seconds" type="number" min="60" max="86400" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
           </div>
           <template v-if="form.system === 'sub2api'">
-            <div>
+            <div class="md:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('admin.relayMonitor.authMethod') }}</label>
+              <div class="flex gap-4 text-sm text-gray-700 dark:text-gray-200">
+                <label class="flex cursor-pointer items-center gap-1.5"><input type="radio" value="password" v-model="form.auth_mode" /> {{ t('admin.relayMonitor.authModePassword') }}</label>
+                <label class="flex cursor-pointer items-center gap-1.5"><input type="radio" value="token" v-model="form.auth_mode" /> {{ t('admin.relayMonitor.authModeToken') }}</label>
+              </div>
+            </div>
+            <template v-if="form.auth_mode === 'password'">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.relayMonitor.authAccount') }}
+                  <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
+                </label>
+                <input v-model="form.auth_account" type="email" autocomplete="off" placeholder="you@example.com" class="w-full rounded-lg border px-3 py-2 text-sm dark:bg-dark-700 dark:text-white" :class="form.auth_account && !isEmail(form.auth_account) ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-dark-600'" />
+                <p v-if="form.auth_account && !isEmail(form.auth_account)" class="mt-1 text-xs text-red-500">{{ t('admin.relayMonitor.authAccountEmailHint') }}</p>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {{ t('admin.relayMonitor.password') }}
+                  <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
+                </label>
+                <input v-model="form.credential" type="password" autocomplete="new-password" :placeholder="editing ? t('admin.relayMonitor.credentialKeep') : t('admin.relayMonitor.passwordPlaceholder')" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+              </div>
+              <p class="md:col-span-2 -mt-2 text-xs text-gray-400">{{ t('admin.relayMonitor.sub2apiAuthHint') }}</p>
+            </template>
+            <div v-else class="md:col-span-2">
               <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {{ t('admin.relayMonitor.authAccount') }}
+                {{ t('admin.relayMonitor.tokenLabel') }}
                 <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
               </label>
-              <input v-model="form.auth_account" type="email" autocomplete="off" placeholder="you@example.com" class="w-full rounded-lg border px-3 py-2 text-sm dark:bg-dark-700 dark:text-white" :class="form.auth_account && !isEmail(form.auth_account) ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-dark-600'" />
-              <p v-if="form.auth_account && !isEmail(form.auth_account)" class="mt-1 text-xs text-red-500">{{ t('admin.relayMonitor.authAccountEmailHint') }}</p>
+              <input v-model="form.credential" type="password" autocomplete="new-password" :placeholder="editing ? t('admin.relayMonitor.credentialKeep') : 'eyJhbGciOi...'" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+              <p class="mt-1 text-xs text-gray-400">{{ t('admin.relayMonitor.tokenHint') }}</p>
             </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                {{ t('admin.relayMonitor.password') }}
-                <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
-              </label>
-              <input v-model="form.credential" type="password" autocomplete="new-password" :placeholder="editing ? t('admin.relayMonitor.credentialKeep') : t('admin.relayMonitor.passwordPlaceholder')" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
-            </div>
-            <p class="md:col-span-2 -mt-2 text-xs text-gray-400">{{ t('admin.relayMonitor.sub2apiAuthHint') }}</p>
           </template>
         </div>
 
@@ -681,12 +698,19 @@ const form = reactive({
   system: 'sub2api' as RelaySystem,
   base_url: '',
   vendor: '',
+  auth_mode: 'password' as 'password' | 'token',
   auth_account: '',
   credential: '',
   watched_groups: [] as string[],
   interval_seconds: 300,
   enabled: true,
 })
+
+// Token 模式不带邮箱（后端据此把 credential 当 Bearer token）。
+function effectiveAuthAccount(): string {
+  if (form.system === 'sub2api' && form.auth_mode === 'token') return ''
+  return form.auth_account.trim()
+}
 
 // 厂商下拉候选（datalist，仍可自定义输入）。
 const vendorOptions = ['OpenAI', 'Claude', 'Gemini', 'Grok', 'DeepSeek']
@@ -1144,6 +1168,7 @@ function resetForm() {
   form.system = 'sub2api'
   form.base_url = ''
   form.vendor = ''
+  form.auth_mode = 'password'
   form.auth_account = ''
   form.credential = ''
   form.watched_groups = []
@@ -1164,6 +1189,8 @@ function openEdit(m: RelayMonitor) {
   form.system = m.system
   form.base_url = m.base_url
   form.vendor = m.vendor
+  // 有邮箱=账号密码模式；无邮箱但 sub2api=Token 模式
+  form.auth_mode = m.system === 'sub2api' && !m.auth_account ? 'token' : 'password'
   form.auth_account = m.auth_account
   form.credential = ''
   form.watched_groups = [...m.watched_groups]
@@ -1183,7 +1210,7 @@ async function fetchGroups() {
     availableGroups.value = await relayMonitorAPI.fetchGroups({
       system: form.system,
       base_url: form.base_url.trim(),
-      auth_account: form.auth_account.trim() || undefined,
+      auth_account: effectiveAuthAccount() || undefined,
       credential: form.credential.trim() || undefined,
       monitor_id: editing.value?.id,
     })
@@ -1205,7 +1232,7 @@ async function save() {
       system: form.system,
       base_url: form.base_url.trim(),
       vendor: form.vendor.trim(),
-      auth_account: form.auth_account.trim(),
+      auth_account: effectiveAuthAccount(),
       watched_groups: form.watched_groups,
       interval_seconds: form.interval_seconds,
       enabled: form.enabled,

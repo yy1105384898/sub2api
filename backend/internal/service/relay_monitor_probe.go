@@ -53,14 +53,22 @@ type sub2apiGroup struct {
 	RateMultiplier float64 `json:"rate_multiplier"`
 }
 
-// probeSub2API 抓取 sub2api 站点的分组倍率：先用邮箱+密码登录拿 JWT，再抓分组。
-func probeSub2API(ctx context.Context, baseURL, authAccount, password string) ([]RelayGroupRate, error) {
-	if strings.TrimSpace(authAccount) == "" || strings.TrimSpace(password) == "" {
+// probeSub2API 抓取 sub2api 站点的分组倍率，两种认证方式：
+//   - 账号密码模式（authAccount 非空）：先用邮箱+密码登录拿 JWT，再抓分组（适用无 Turnstile 的站）。
+//   - Token 模式（authAccount 为空）：credential 直接作为 Bearer token（浏览器登录后拿到的 JWT，
+//     适用开了 Turnstile 人机验证、无法自动登录的站）。
+func probeSub2API(ctx context.Context, baseURL, authAccount, credential string) ([]RelayGroupRate, error) {
+	cred := strings.TrimSpace(credential)
+	if cred == "" {
 		return nil, ErrRelayMonitorMissingCredential
 	}
-	token, err := loginSub2API(ctx, baseURL, authAccount, password)
-	if err != nil {
-		return nil, err
+	token := cred
+	if strings.TrimSpace(authAccount) != "" {
+		t, err := loginSub2API(ctx, baseURL, authAccount, cred)
+		if err != nil {
+			return nil, err
+		}
+		token = t
 	}
 	u := joinRelayURL(baseURL, "/api/v1/groups/available")
 	body, err := relayGet(ctx, u, map[string]string{

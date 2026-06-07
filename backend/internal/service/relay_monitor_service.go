@@ -107,9 +107,9 @@ func validateRelayCreate(p RelayMonitorCreateParams) error {
 	if err := validateEndpoint(p.BaseURL); err != nil {
 		return err
 	}
-	// sub2api 需要邮箱 + 密码登录目标站。
-	if p.System == RelaySystemSub2API &&
-		(strings.TrimSpace(p.AuthAccount) == "" || strings.TrimSpace(p.Credential) == "") {
+	// sub2api 需要凭证：账号密码模式(邮箱+密码) 或 Token 模式(直接填 JWT)。
+	// 两种模式都要求 credential 非空(密码或 token)；auth_account 仅在密码模式填。
+	if p.System == RelaySystemSub2API && strings.TrimSpace(p.Credential) == "" {
 		return ErrRelayMonitorMissingCredential
 	}
 	return nil
@@ -125,11 +125,11 @@ func (s *RelayMonitorService) Update(ctx context.Context, id int64, p RelayMonit
 	if err != nil {
 		return nil, err
 	}
-	// sub2api 校验：必须有邮箱；密码要么已存在、要么本次提供。
+	// sub2api 校验：凭证(密码或 token)要么已存在、要么本次提供。
 	if existing.System == RelaySystemSub2API {
-		passwordMissing := strings.TrimSpace(existing.Credential) == "" &&
+		credMissing := strings.TrimSpace(existing.Credential) == "" &&
 			(p.Credential == nil || strings.TrimSpace(*p.Credential) == "")
-		if strings.TrimSpace(existing.AuthAccount) == "" || passwordMissing {
+		if credMissing {
 			return nil, ErrRelayMonitorMissingCredential
 		}
 	}

@@ -59,7 +59,7 @@ var (
 		"RELAY_MONITOR_MISSING_NAME", "name is required",
 	)
 	ErrRelayMonitorMissingCredential = infraerrors.BadRequest(
-		"RELAY_MONITOR_MISSING_CREDENTIAL", "sub2api site requires login email and password",
+		"RELAY_MONITOR_MISSING_CREDENTIAL", "sub2api site requires a password (with login email) or a token",
 	)
 	ErrRelayMonitorCredentialDecryptFailed = infraerrors.InternalServer(
 		"RELAY_MONITOR_CREDENTIAL_DECRYPT_FAILED", "credential decryption failed; please re-edit the monitor with a fresh token",

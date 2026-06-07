@@ -455,7 +455,8 @@ async function saveMonitor() {
 
 function editMonitor(m: CardPlatformMonitor) {
   editingId.value = m.id
-  Object.assign(form, { name: m.name, platform_type: m.platform_type, base_url: m.base_url, shop_url: m.shop_url, auth_mode: m.auth_mode, credential: '', enabled: m.enabled, interval_seconds: m.interval_seconds, fetch_pages: m.fetch_pages, note: m.note })
+  // 后端把「自动」存成哨兵 'ldxp'，编辑时显示为空，避免误当成地址校验失败。
+  Object.assign(form, { name: m.name, platform_type: m.platform_type, base_url: m.base_url === 'ldxp' ? '' : m.base_url, shop_url: m.shop_url, auth_mode: m.auth_mode, credential: '', enabled: m.enabled, interval_seconds: m.interval_seconds, fetch_pages: m.fetch_pages, note: m.note })
 }
 
 function resetForm() {

@@ -135,6 +135,7 @@
             <input v-model="form.base_url" class="input md:col-span-3" placeholder="自定义接口地址（可选，不填自动识别链动小铺）" />
             <input v-model="form.note" class="input md:col-span-3" placeholder="备注" />
             <p v-if="form.auth_mode === 'push'" class="md:col-span-6 text-xs text-gray-500 dark:text-gray-400">推送模式：链动接口被阿里云反爬保护，服务器抓不到。保存后在下方列表点「推送脚本」，安装油猴脚本到浏览器即可自动上报（浏览器天然过反爬）。</p>
+            <p v-if="form.auth_mode === 'cookie'" class="md:col-span-6 text-xs text-gray-500 dark:text-gray-400">Cookie 模式（不用油猴，服务器直接搜）：浏览器登录链动后台 → F12 → Network 任意请求 → 复制完整 Cookie 粘到上面。服务器带这段 Cookie 直接定时抓取。<b>Cookie 含反爬放行票，会过期，过期后需重新粘贴。</b></p>
           </div>
           <div class="mt-3 flex gap-2">
             <button class="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white" @click="saveMonitor">{{ editingId ? '保存' : '新增' }}</button>

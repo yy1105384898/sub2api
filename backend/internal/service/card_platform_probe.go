@@ -30,11 +30,12 @@ func probeCardProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 
 func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProductSnapshot, [][]byte, error) {
 	if m.AuthMode == CardAuthModePublic {
-		return nil, nil, fmt.Errorf("链动小铺公开页解析暂未启用，请先使用 Token 模式")
+		return nil, nil, fmt.Errorf("链动小铺公开页解析暂未启用，请用 Cookie 模式或浏览器推送")
 	}
 	if strings.TrimSpace(m.Credential) == "" {
 		return nil, nil, ErrCardMonitorMissingCredential
 	}
+	headers := buildLDXPHeaders(m.AuthMode, strings.TrimSpace(m.Credential))
 	apiURLs, err := buildLDXPGoodsListURLs(m.BaseURL)
 	if err != nil {
 		return nil, nil, err
@@ -58,7 +59,7 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 				"goods_type": "",
 				"keywords":   "",
 			}
-			payload, err := postLDXP(ctx, apiURL, strings.TrimSpace(m.Credential), body)
+			payload, err := postLDXP(ctx, apiURL, headers, body)
 			if err != nil {
 				lastErr = err
 				if !isNetworkLookupError(err) {
@@ -92,7 +93,44 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 	return products, raws, nil
 }
 
-func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]any, error) {
+// buildLDXPHeaders 按认证模式构造请求头。
+//   - token 模式：credential 作为 Merchant-Token 头。
+//   - cookie 模式：credential 是浏览器整段 Cookie（含反爬放行票 acw_sc__v2 + 登录态），
+//     作为 Cookie 头；并尽量从中提取 token 同时放到 Merchant-Token 头，提高兼容性。
+func buildLDXPHeaders(authMode, credential string) map[string]string {
+	headers := map[string]string{
+		"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+		"Origin":          "https://pay.ldxp.cn",
+		"Referer":         "https://pay.ldxp.cn/",
+		"Accept-Language": "zh-CN,zh;q=0.9",
+	}
+	if authMode == CardAuthModeCookie {
+		headers["Cookie"] = credential
+		if tok := extractCookieToken(credential); tok != "" {
+			headers["Merchant-Token"] = tok
+		}
+		return headers
+	}
+	headers["Merchant-Token"] = credential
+	return headers
+}
+
+// extractCookieToken 从 Cookie 字符串里找常见的商户 token 键。
+func extractCookieToken(cookie string) string {
+	for _, pair := range strings.Split(cookie, ";") {
+		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(kv) != 2 {
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(kv[0])) {
+		case "auth-token", "merchant-token", "token":
+			return strings.TrimSpace(kv[1])
+		}
+	}
+	return ""
+}
+
+func postLDXP(ctx context.Context, apiURL string, headers map[string]string, body any) (map[string]any, error) {
 	buf, _ := json.Marshal(body)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(buf))
 	if err != nil {
@@ -100,7 +138,9 @@ func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]a
 	}
 	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	req.Header.Set("Accept", "application/json, text/plain, */*")
-	req.Header.Set("Merchant-Token", token)
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("链动小铺请求失败：%w", err)

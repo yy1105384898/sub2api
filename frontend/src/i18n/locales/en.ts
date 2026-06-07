@@ -2814,6 +2814,7 @@ export default {
       noGroupSelected: 'No group selected',
       credential: 'Credential',
       authAccount: 'Login Email',
+      authAccountEmailHint: 'sub2api login requires an email; use the registered email (non-email is rejected with HTTP 400)',
       password: 'Login Password',
       passwordPlaceholder: 'password on the target site',
       sub2apiAuthHint: 'sub2api sites expose no API key; the probe logs in with this email + password to fetch group rates (password stored encrypted)',

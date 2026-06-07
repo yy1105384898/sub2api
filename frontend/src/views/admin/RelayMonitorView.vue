@@ -490,7 +490,8 @@
                 {{ t('admin.relayMonitor.authAccount') }}
                 <span class="text-xs font-normal text-gray-400">{{ t('admin.relayMonitor.credentialRequired') }}</span>
               </label>
-              <input v-model="form.auth_account" type="text" autocomplete="off" placeholder="you@example.com" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-dark-600 dark:bg-dark-700 dark:text-white" />
+              <input v-model="form.auth_account" type="email" autocomplete="off" placeholder="you@example.com" class="w-full rounded-lg border px-3 py-2 text-sm dark:bg-dark-700 dark:text-white" :class="form.auth_account && !isEmail(form.auth_account) ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-dark-600'" />
+              <p v-if="form.auth_account && !isEmail(form.auth_account)" class="mt-1 text-xs text-red-500">{{ t('admin.relayMonitor.authAccountEmailHint') }}</p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -952,6 +953,10 @@ function newestChangedAt(rows: RelayOverviewRow[]): string | null {
     .map((r) => r.changed_at)
     .filter((v): v is string => Boolean(v))
     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? null
+}
+
+function isEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 }
 
 function formatRate(r: number): string {

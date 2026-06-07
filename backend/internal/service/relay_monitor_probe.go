@@ -203,9 +203,20 @@ func relayGet(ctx context.Context, url string, headers map[string]string) ([]byt
 		return nil, fmt.Errorf("%w: read body", ErrRelayMonitorProbeFailed)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("%w: upstream HTTP %d", ErrRelayMonitorProbeFailed, resp.StatusCode)
+		return nil, fmt.Errorf("%w: upstream HTTP %d %s", ErrRelayMonitorProbeFailed, resp.StatusCode, relayBodySnippet(body))
 	}
 	return body, nil
+}
+
+// relayBodySnippet 把响应体压成单行短片段（最多 200 字符），用于错误信息展示。
+func relayBodySnippet(body []byte) string {
+	s := strings.TrimSpace(string(body))
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	if len(s) > 200 {
+		s = s[:200]
+	}
+	return s
 }
 
 // relayPostJSON 发起一次 POST application/json 并读取（受限）响应体。非 2xx 视为失败。
@@ -227,7 +238,7 @@ func relayPostJSON(ctx context.Context, url string, payload []byte) ([]byte, err
 		return nil, fmt.Errorf("%w: read body", ErrRelayMonitorProbeFailed)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("%w: login HTTP %d", ErrRelayMonitorProbeFailed, resp.StatusCode)
+		return nil, fmt.Errorf("%w: login HTTP %d %s", ErrRelayMonitorProbeFailed, resp.StatusCode, relayBodySnippet(body))
 	}
 	return body, nil
 }

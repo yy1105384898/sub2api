@@ -2891,6 +2891,7 @@ export default {
       noGroupSelected: '未选择分组',
       credential: '访问凭证',
       authAccount: '登录邮箱',
+      authAccountEmailHint: 'sub2api 登录要求邮箱格式，请填注册邮箱（非邮箱会被目标站拒绝返回 400）',
       password: '登录密码',
       passwordPlaceholder: '该站登录密码',
       sub2apiAuthHint: 'sub2api 站点不开放 API 密钥，探测时用此邮箱+密码登录目标站抓取分组倍率（密码加密存储）',

@@ -122,14 +122,14 @@
           <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ editingId ? '编辑平台' : '新增平台' }}</h3>
           <div class="mt-3 grid gap-3 md:grid-cols-6">
             <input v-model="form.name" class="input" placeholder="平台名称" />
-            <select v-model="form.platform_type" class="input"><option value="ldxp">链动小铺</option></select>
-            <input v-model="form.base_url" class="input md:col-span-2" placeholder="站点地址，如 https://pay.ldxp.cn" />
-            <select v-model="form.auth_mode" class="input"><option value="token">Token</option><option value="public">公开页</option><option value="cookie">Cookie</option></select>
-            <input v-model.number="form.fetch_pages" class="input" type="number" min="1" max="500" placeholder="扫描页数" />
-            <input v-model="form.credential" class="input md:col-span-3" type="password" placeholder="Token；编辑留空表示不修改" />
+            <select v-model="form.platform_type" class="input"><option value="ldxp">链动小铺（自动）</option></select>
+            <input v-model="form.credential" class="input md:col-span-2" type="password" placeholder="Merchant-Token" />
             <input v-model.number="form.interval_seconds" class="input" type="number" min="60" placeholder="间隔秒" />
+            <input v-model.number="form.fetch_pages" class="input" type="number" min="1" max="500" placeholder="扫描页数" />
             <label class="flex items-center gap-2 text-sm dark:text-gray-200"><input v-model="form.enabled" type="checkbox" />启用</label>
-            <input v-model="form.note" class="input md:col-span-6" placeholder="备注" />
+            <input v-model="form.base_url" class="input md:col-span-3" placeholder="自定义接口地址（可选，不填自动识别链动小铺）" />
+            <select v-model="form.auth_mode" class="input"><option value="token">Token</option><option value="cookie">Cookie</option></select>
+            <input v-model="form.note" class="input md:col-span-2" placeholder="备注" />
           </div>
           <div class="mt-3 flex gap-2">
             <button class="rounded-lg bg-primary-600 px-4 py-2 text-sm text-white" @click="saveMonitor">{{ editingId ? '保存' : '新增' }}</button>
@@ -145,7 +145,7 @@
             <tbody>
               <tr v-for="m in monitors" :key="m.id" class="border-t border-gray-100 dark:border-dark-700">
                 <td class="px-4 py-3"><div class="font-medium text-gray-900 dark:text-white">{{ m.name }}</div><div class="text-xs text-gray-500">{{ m.last_error || '正常' }}</div></td>
-                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ m.base_url }}</td>
+                <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ platformAddressLabel(m.base_url) }}</td>
                 <td class="px-4 py-3 text-center"><span :class="m.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'" class="rounded px-2 py-1 text-xs">{{ m.enabled ? '启用' : '停用' }}</span></td>
                 <td class="px-4 py-3 text-center text-gray-500">{{ m.fetch_pages }} 页 / {{ m.interval_seconds }} 秒</td>
                 <td class="px-4 py-3 text-right">
@@ -184,6 +184,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import cardAPI, { type CardPlatformMonitor, type CardProduct, type CardPriceEvent, type CardSummary, type CardEventType } from '@/api/admin/cardPlatformMonitor'
+import { useAppStore } from '@/stores'
 
 const tabs = [
   { key: 'search', label: '全平台搜索' },
@@ -198,9 +199,10 @@ const eventRows = ref<CardPriceEvent[]>([])
 const productsLoading = ref(false)
 const summaryData = reactive<CardSummary>({ platform_count: 0, product_count: 0, price_down: 0, restock: 0, error_count: 0 })
 const editingId = ref<number | null>(null)
+const appStore = useAppStore()
 
 const productQuery = reactive({ search: 'gpt', monitor_id: 0, sort: 'priceAsc', in_stock: true })
-const form = reactive({ name: '', platform_type: 'ldxp' as const, base_url: 'https://pay.ldxp.cn', shop_url: '', auth_mode: 'token' as const, credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
+const form = reactive({ name: '', platform_type: 'ldxp' as const, base_url: '', shop_url: '', auth_mode: 'token' as const, credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
 
 const groupedProducts = computed(() => {
   const map = new Map<string, CardProduct[]>()
@@ -252,12 +254,17 @@ async function reloadSummary() {
 }
 
 async function saveMonitor() {
-  const payload = { ...form }
-  if (editingId.value && !payload.credential) delete (payload as any).credential
-  if (editingId.value) await cardAPI.update(editingId.value, payload)
-  else await cardAPI.create(payload)
-  resetForm()
-  await reloadMonitors()
+  try {
+    const payload = { ...form }
+    if (editingId.value && !payload.credential) delete (payload as any).credential
+    if (editingId.value) await cardAPI.update(editingId.value, payload)
+    else await cardAPI.create(payload)
+    appStore.showSuccess(editingId.value ? '保存成功' : '新增成功')
+    resetForm()
+    await reloadMonitors()
+  } catch (err) {
+    appStore.showError(errorText(err, '保存失败'))
+  }
 }
 
 function editMonitor(m: CardPlatformMonitor) {
@@ -267,12 +274,18 @@ function editMonitor(m: CardPlatformMonitor) {
 
 function resetForm() {
   editingId.value = null
-  Object.assign(form, { name: '', platform_type: 'ldxp', base_url: 'https://pay.ldxp.cn', shop_url: '', auth_mode: 'token', credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
+  Object.assign(form, { name: '', platform_type: 'ldxp', base_url: '', shop_url: '', auth_mode: 'token', credential: '', enabled: true, interval_seconds: 300, fetch_pages: 5, note: '' })
 }
 
 async function runProbe(m: CardPlatformMonitor) {
-  await cardAPI.probe(m.id)
-  await reloadAll()
+  try {
+    const res = await cardAPI.probe(m.id)
+    appStore.showSuccess(`扫描完成，商品 ${res.products.length} 个，变化 ${res.events.length} 个`)
+    await reloadAll()
+  } catch (err) {
+    appStore.showError(errorText(err, '扫描失败'), 8000)
+    await reloadMonitors()
+  }
 }
 
 async function deleteMonitor(m: CardPlatformMonitor) {
@@ -286,6 +299,7 @@ function dateTime(v: string | null | undefined) { return v ? new Date(v).toLocal
 function promoPrice(p: CardProduct) { return p.cost_price != null && p.cost_price !== p.price ? `¥${money(p.cost_price)}` : '—' }
 function stockText(v: number | null | undefined) { return typeof v === 'number' ? String(v) : '有货' }
 function shortId(v: string | null | undefined) { return v ? (v.length > 8 ? `${v.slice(0, 6)}…` : v) : '-' }
+function platformAddressLabel(v: string | null | undefined) { return !v || v === 'ldxp' ? '自动预设' : v }
 function relativeTime(v: string | null | undefined) {
   if (!v) return '-'
   const diff = Date.now() - new Date(v).getTime()
@@ -317,6 +331,18 @@ function statusLabel(v: string) { return ({ online: '上架', offline: '下架',
 function statusClass(v: string) { return v === 'online' ? 'bg-emerald-50 text-emerald-700' : v === 'sold_out' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600' }
 function eventLabel(v: CardEventType | string) { return ({ new_product: '新商品', price_down: '降价', price_up: '涨价', new_low: '新低价', restock: '补货', sold_out: '售罄', offline: '下架', online: '上架', changed: '变化' } as Record<string, string>)[v] || v }
 function eventClass(v: CardEventType | string) { return ['price_down', 'new_low', 'restock'].includes(v) ? 'bg-emerald-50 text-emerald-700' : ['price_up', 'offline', 'sold_out'].includes(v) ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-blue-700' }
+function errorText(err: unknown, fallback: string) {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const data = (err as { response?: { data?: { detail?: unknown; message?: unknown; error?: unknown } } }).response?.data
+    const message = data?.detail || data?.message || data?.error
+    if (message) return String(message)
+  }
+  if (err && typeof err === 'object' && 'message' in err) {
+    const message = String((err as { message?: unknown }).message || '')
+    if (message) return message
+  }
+  return fallback
+}
 
 watch(activeTab, () => { if (activeTab.value === 'events') reloadEvents() })
 onMounted(reloadAll)

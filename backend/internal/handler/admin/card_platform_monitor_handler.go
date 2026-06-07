@@ -26,7 +26,7 @@ func NewCardPlatformMonitorHandler(svc *service.CardPlatformMonitorService) *Car
 type cardMonitorRequest struct {
 	Name            string `json:"name" binding:"required,max=100"`
 	PlatformType    string `json:"platform_type" binding:"omitempty,oneof=ldxp"`
-	BaseURL         string `json:"base_url" binding:"required,max=500"`
+	BaseURL         string `json:"base_url" binding:"max=1000"`
 	ShopURL         string `json:"shop_url" binding:"max=500"`
 	AuthMode        string `json:"auth_mode" binding:"omitempty,oneof=public token cookie"`
 	Credential      string `json:"credential" binding:"max=8000"`
@@ -39,7 +39,7 @@ type cardMonitorRequest struct {
 type cardMonitorUpdateRequest struct {
 	Name            *string `json:"name" binding:"omitempty,max=100"`
 	PlatformType    *string `json:"platform_type" binding:"omitempty,oneof=ldxp"`
-	BaseURL         *string `json:"base_url" binding:"omitempty,max=500"`
+	BaseURL         *string `json:"base_url" binding:"omitempty,max=1000"`
 	ShopURL         *string `json:"shop_url" binding:"omitempty,max=500"`
 	AuthMode        *string `json:"auth_mode" binding:"omitempty,oneof=public token cookie"`
 	Credential      *string `json:"credential" binding:"omitempty,max=8000"`

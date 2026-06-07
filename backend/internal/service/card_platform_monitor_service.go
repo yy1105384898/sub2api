@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -67,7 +68,7 @@ func (s *CardPlatformMonitorService) Create(ctx context.Context, p CardMonitorCr
 	m := &CardPlatformMonitor{
 		Name:            strings.TrimSpace(p.Name),
 		PlatformType:    normalizeCardPlatform(p.PlatformType),
-		BaseURL:         normalizeEndpoint(p.BaseURL),
+		BaseURL:         normalizeCardBaseURL(p.BaseURL),
 		ShopURL:         strings.TrimSpace(p.ShopURL),
 		AuthMode:        normalizeCardAuthMode(p.AuthMode),
 		Credential:      encrypted,
@@ -298,7 +299,7 @@ func validateCardCreate(p CardMonitorCreateParams) error {
 	if err := validateCardAuthMode(p.AuthMode); err != nil {
 		return err
 	}
-	if err := validateEndpoint(p.BaseURL); err != nil {
+	if err := validateCardBaseURL(p.BaseURL); err != nil {
 		return err
 	}
 	if err := validateCardInterval(p.IntervalSeconds); err != nil {
@@ -324,10 +325,10 @@ func applyCardUpdate(m *CardPlatformMonitor, p CardMonitorUpdateParams) error {
 		m.PlatformType = normalizeCardPlatform(*p.PlatformType)
 	}
 	if p.BaseURL != nil {
-		if err := validateEndpoint(*p.BaseURL); err != nil {
+		if err := validateCardBaseURL(*p.BaseURL); err != nil {
 			return err
 		}
-		m.BaseURL = normalizeEndpoint(*p.BaseURL)
+		m.BaseURL = normalizeCardBaseURL(*p.BaseURL)
 	}
 	if p.ShopURL != nil {
 		m.ShopURL = strings.TrimSpace(*p.ShopURL)
@@ -357,6 +358,26 @@ func applyCardUpdate(m *CardPlatformMonitor, p CardMonitorUpdateParams) error {
 		m.Note = strings.TrimSpace(*p.Note)
 	}
 	return nil
+}
+
+func validateCardBaseURL(raw string) error {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Scheme != "https" || u.Host == "" {
+		return ErrCardMonitorInvalidBaseURL
+	}
+	return nil
+}
+
+func normalizeCardBaseURL(raw string) string {
+	raw = normalizeEndpoint(raw)
+	if raw == "" {
+		return CardPlatformLDXP
+	}
+	return raw
 }
 
 func (s *CardPlatformMonitorService) applyCredentialUpdate(m *CardPlatformMonitor, raw *string) (string, bool, error) {

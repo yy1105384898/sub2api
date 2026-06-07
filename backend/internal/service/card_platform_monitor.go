@@ -40,6 +40,7 @@ var (
 	ErrCardMonitorMissingName             = infraerrors.BadRequest("CARD_MONITOR_MISSING_NAME", "name is required")
 	ErrCardMonitorInvalidPlatform         = infraerrors.BadRequest("CARD_MONITOR_INVALID_PLATFORM", "platform_type must be ldxp")
 	ErrCardMonitorInvalidAuthMode         = infraerrors.BadRequest("CARD_MONITOR_INVALID_AUTH_MODE", "auth_mode must be public/token/cookie")
+	ErrCardMonitorInvalidBaseURL          = infraerrors.BadRequest("CARD_MONITOR_INVALID_BASE_URL", "base_url must be a valid https URL")
 	ErrCardMonitorInvalidInterval         = infraerrors.BadRequest("CARD_MONITOR_INVALID_INTERVAL", "interval_seconds must be in [60, 86400]")
 	ErrCardMonitorInvalidFetchPages       = infraerrors.BadRequest("CARD_MONITOR_INVALID_FETCH_PAGES", "fetch_pages must be in [1, 500]")
 	ErrCardMonitorMissingCredential       = infraerrors.BadRequest("CARD_MONITOR_MISSING_CREDENTIAL", "token/cookie mode requires credential")

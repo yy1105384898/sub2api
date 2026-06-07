@@ -14,6 +14,12 @@ import (
 
 const cardResponseMaxBytes = 4 * 1024 * 1024
 
+var ldxpPresetGoodsListURLs = []string{
+	"https://pay.ldxp.cn/merchantApi/MyParent/searchGoodsList",
+	"https://api.ldxp.cn/merchantApi/MyParent/searchGoodsList",
+	"https://admin.ldxp.cn/merchantApi/MyParent/searchGoodsList",
+}
+
 func probeCardProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProductSnapshot, [][]byte, error) {
 	switch m.PlatformType {
 	case CardPlatformLDXP:
@@ -30,7 +36,7 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 	if strings.TrimSpace(m.Credential) == "" {
 		return nil, nil, ErrCardMonitorMissingCredential
 	}
-	apiURL, err := buildLDXPGoodsListURL(m.BaseURL)
+	apiURLs, err := buildLDXPGoodsListURLs(m.BaseURL)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -40,30 +46,42 @@ func probeLDXPProducts(ctx context.Context, m *CardPlatformMonitor) ([]*CardProd
 	}
 	products := make([]*CardProductSnapshot, 0)
 	raws := make([][]byte, 0)
-	for page := 1; page <= pages; page++ {
-		body := map[string]any{
-			"current":    page,
-			"pageSize":   50,
-			"name":       "",
-			"goods_type": "",
-			"keywords":   "",
-		}
-		payload, err := postLDXP(ctx, apiURL, strings.TrimSpace(m.Credential), body)
-		if err != nil {
-			return nil, nil, err
-		}
-		list := extractLDXPList(payload)
-		for _, item := range list {
-			p := normalizeLDXPProduct(m, item)
-			if p.ExternalProductID == "" {
-				continue
+	var lastErr error
+	for _, apiURL := range apiURLs {
+		products, raws = products[:0], raws[:0]
+		lastErr = nil
+		for page := 1; page <= pages; page++ {
+			body := map[string]any{
+				"current":    page,
+				"pageSize":   50,
+				"name":       "",
+				"goods_type": "",
+				"keywords":   "",
 			}
-			products = append(products, p)
-			raws = append(raws, item)
+			payload, err := postLDXP(ctx, apiURL, strings.TrimSpace(m.Credential), body)
+			if err != nil {
+				lastErr = err
+				break
+			}
+			list := extractLDXPList(payload)
+			for _, item := range list {
+				p := normalizeLDXPProduct(m, item)
+				if p.ExternalProductID == "" {
+					continue
+				}
+				products = append(products, p)
+				raws = append(raws, item)
+			}
+			if len(list) < 50 {
+				break
+			}
 		}
-		if len(list) < 50 {
-			break
+		if lastErr == nil {
+			return products, raws, nil
 		}
+	}
+	if lastErr != nil {
+		return nil, nil, lastErr
 	}
 	return products, raws, nil
 }
@@ -92,7 +110,7 @@ func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]a
 	var payload map[string]any
 	if err := json.Unmarshal(data, &payload); err != nil {
 		if strings.Contains(strings.TrimSpace(string(data[:minInt(len(data), 200)])), "<") {
-			return nil, fmt.Errorf("链动小铺响应不是 JSON：请把“站点地址”填成实际 Request URL 或接口域名，当前地址返回了网页")
+			return nil, fmt.Errorf("链动小铺响应不是 JSON：平台预设接口返回了网页，请检查 Token 是否来自链动商户后台")
 		}
 		return nil, fmt.Errorf("链动小铺响应不是 JSON：%w", err)
 	}
@@ -109,22 +127,22 @@ func postLDXP(ctx context.Context, apiURL, token string, body any) (map[string]a
 	return payload, nil
 }
 
-func buildLDXPGoodsListURL(rawBase string) (string, error) {
+func buildLDXPGoodsListURLs(rawBase string) ([]string, error) {
 	rawBase = normalizeEndpoint(rawBase)
-	if rawBase == "" {
-		return "", fmt.Errorf("站点地址不能为空")
+	if rawBase == "" || rawBase == CardPlatformLDXP {
+		return ldxpPresetGoodsListURLs, nil
 	}
 	u, err := url.Parse(rawBase)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if strings.Contains(u.Path, "/merchantApi/MyParent/searchGoodsList") {
-		return u.String(), nil
+		return []string{u.String()}, nil
 	}
 	u.Path = "/merchantApi/MyParent/searchGoodsList"
 	u.RawQuery = ""
 	u.Fragment = ""
-	return u.String(), nil
+	return []string{u.String()}, nil
 }
 
 func extractLDXPList(payload map[string]any) [][]byte {

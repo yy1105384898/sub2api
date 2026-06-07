@@ -95,6 +95,9 @@ func RegisterAdminRoutes(
 		// 中转站监控
 		registerRelayMonitorRoutes(admin, h)
 
+		// 发卡平台监控
+		registerCardPlatformMonitorRoutes(admin, h)
+
 		// 风控中心
 		registerContentModerationRoutes(admin, h)
 
@@ -648,6 +651,23 @@ func registerRelayMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		monitors.PUT("/:id", h.Admin.RelayMonitor.Update)
 		monitors.DELETE("/:id", h.Admin.RelayMonitor.Delete)
 		monitors.POST("/:id/probe", h.Admin.RelayMonitor.Probe)
+	}
+}
+
+func registerCardPlatformMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	monitors := admin.Group("/card-platform-monitors")
+	{
+		monitors.GET("/summary", h.Admin.CardPlatformMonitor.Summary)
+		monitors.GET("/products", h.Admin.CardPlatformMonitor.Products)
+		monitors.GET("/events", h.Admin.CardPlatformMonitor.Events)
+		monitors.POST("/probe-all", h.Admin.CardPlatformMonitor.ProbeAll)
+
+		monitors.GET("", h.Admin.CardPlatformMonitor.List)
+		monitors.POST("", h.Admin.CardPlatformMonitor.Create)
+		monitors.GET("/:id", h.Admin.CardPlatformMonitor.Get)
+		monitors.PUT("/:id", h.Admin.CardPlatformMonitor.Update)
+		monitors.DELETE("/:id", h.Admin.CardPlatformMonitor.Delete)
+		monitors.POST("/:id/probe", h.Admin.CardPlatformMonitor.Probe)
 	}
 }
 

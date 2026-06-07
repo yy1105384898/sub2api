@@ -78,6 +78,7 @@ func TestProvideCleanup_WithMinimalDependencies_NoPanic(t *testing.T) {
 		nil, // paymentOrderExpiry
 		nil, // channelMonitorRunner
 		nil, // relayMonitorRunner
+		nil, // cardPlatformMonitorRunner
 		nil, // quotaFlusher
 	)
 

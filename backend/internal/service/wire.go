@@ -585,6 +585,8 @@ var ProviderSet = wire.NewSet(
 	ProvideChannelMonitorRunner,
 	ProvideRelayMonitorService,
 	ProvideRelayMonitorRunner,
+	NewCardPlatformMonitorService,
+	ProvideCardPlatformMonitorRunner,
 	NewChannelMonitorRequestTemplateService,
 	ProvideUserPlatformQuotaUsageFlusher,
 )
@@ -658,6 +660,14 @@ func ProvideRelayMonitorService(
 // 后续 CRUD 也能即时同步任务表。Runner.Stop 由 cleanup function 调用。
 func ProvideRelayMonitorRunner(svc *RelayMonitorService) *RelayMonitorRunner {
 	r := NewRelayMonitorRunner(svc)
+	svc.SetScheduler(r)
+	r.Start()
+	return r
+}
+
+// ProvideCardPlatformMonitorRunner 创建并启动发卡平台监控调度器。
+func ProvideCardPlatformMonitorRunner(svc *CardPlatformMonitorService) *CardPlatformMonitorRunner {
+	r := NewCardPlatformMonitorRunner(svc)
 	svc.SetScheduler(r)
 	r.Start()
 	return r

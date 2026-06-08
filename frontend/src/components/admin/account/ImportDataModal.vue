@@ -169,12 +169,35 @@ const handleFolderChange = (event: Event) => {
   files.value = onlyJSON((event.target as HTMLInputElement).files)
 }
 
-// 把任意形态的 JSON 归一化为导入负载：整导出对象 / 账号数组 / 单账号对象。
-const normalizeToPayload = (parsed: any): AdminDataPayload => {
-  if (parsed && typeof parsed === 'object' && Array.isArray(parsed.accounts)) {
-    return parsed as AdminDataPayload
+// 去掉文件名后缀，作为账号名兜底（很多单账号 JSON 文件名即账号邮箱/标识）。
+const fileNameToAccountName = (fileName: string): string =>
+  fileName.replace(/\.json$/i, '').trim()
+
+// 账号缺 name 时用文件名兜底填入。
+const fillAccountName = (acc: any, fallback: string): any => {
+  if (acc && typeof acc === 'object' && !Array.isArray(acc)) {
+    const name = typeof acc.name === 'string' ? acc.name.trim() : ''
+    if (!name) return { ...acc, name: fallback }
   }
-  const accounts = Array.isArray(parsed) ? parsed : [parsed]
+  return acc
+}
+
+// 把任意形态的 JSON 归一化为导入负载：整导出对象 / 账号数组 / 单账号对象。
+// fileName 用于在账号缺少 name 时兜底命名。
+const normalizeToPayload = (parsed: any, fileName: string): AdminDataPayload => {
+  const fallbackName = fileNameToAccountName(fileName)
+  if (parsed && typeof parsed === 'object' && Array.isArray(parsed.accounts)) {
+    const payload = parsed as AdminDataPayload
+    const src = payload.accounts || []
+    const accounts = src.map((acc, idx) =>
+      fillAccountName(acc, src.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
+    )
+    return { ...payload, accounts } as AdminDataPayload
+  }
+  const rawAccounts = Array.isArray(parsed) ? parsed : [parsed]
+  const accounts = rawAccounts.map((acc, idx) =>
+    fillAccountName(acc, rawAccounts.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
+  )
   return { exported_at: new Date().toISOString(), proxies: [], accounts } as AdminDataPayload
 }
 
@@ -217,7 +240,7 @@ const handleImport = async () => {
       try {
         const parsed = JSON.parse(await readFileAsText(f))
         const res = await adminAPI.accounts.importData({
-          data: normalizeToPayload(parsed),
+          data: normalizeToPayload(parsed, f.name),
           skip_default_group_bind: true,
         })
         agg.proxy_created += res.proxy_created

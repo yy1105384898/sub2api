@@ -99,6 +99,7 @@ type Direction string
 const (
 	DirectionUp   Direction = "up"
 	DirectionDown Direction = "down"
+	DirectionNew  Direction = "new"
 )
 
 func (d Direction) String() string {
@@ -108,7 +109,7 @@ func (d Direction) String() string {
 // DirectionValidator is a validator for the "direction" field enum values. It is called by the builders before save.
 func DirectionValidator(d Direction) error {
 	switch d {
-	case DirectionUp, DirectionDown:
+	case DirectionUp, DirectionDown, DirectionNew:
 		return nil
 	default:
 		return fmt.Errorf("relayratechange: invalid enum value for direction field: %q", d)

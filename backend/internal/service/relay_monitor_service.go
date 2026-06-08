@@ -351,7 +351,11 @@ func (s *RelayMonitorService) probeMonitor(ctx context.Context, m *RelayMonitor)
 		}
 		seen[gr.GroupName] = struct{}{}
 		result.Rates = append(result.Rates, gr)
-		if change := buildRateChange(m, gr, old, now); change != nil {
+		oldRate, existed := old[gr.GroupName]
+		if !existed || oldRate < 0 {
+			// 新分组（首次见到）或下架后重新上架 → 记一条「新增」事件，前端打「新」标签。
+			result.Changes = append(result.Changes, buildNewGroupChange(m, gr, now))
+		} else if change := buildRateChange(m, gr, old, now); change != nil {
 			result.Changes = append(result.Changes, change)
 		}
 		if err := s.repo.UpsertSnapshot(ctx, m.ID, gr.GroupName, gr.Rate, now); err != nil {
@@ -400,6 +404,22 @@ func buildRateChange(m *RelayMonitor, gr RelayGroupRate, old map[string]float64,
 		NewRate:    gr.Rate,
 		Direction:  direction,
 		Content:    fmt.Sprintf("分组倍率从 %s 变为 %s", formatRate(prev), formatRate(gr.Rate)),
+		DetectedAt: now,
+	}
+}
+
+// buildNewGroupChange 新增分组事件（direction=new），前端据此打「新」标签。
+func buildNewGroupChange(m *RelayMonitor, gr RelayGroupRate, now time.Time) *RelayRateChange {
+	return &RelayRateChange{
+		MonitorID:  m.ID,
+		Site:       m.Name,
+		System:     m.System,
+		Vendor:     m.Vendor,
+		GroupName:  gr.GroupName,
+		OldRate:    0,
+		NewRate:    gr.Rate,
+		Direction:  RelayDirectionNew,
+		Content:    fmt.Sprintf("发现新分组（%s）", formatRate(gr.Rate)),
 		DetectedAt: now,
 	}
 }
@@ -549,6 +569,7 @@ func watchedSet(groups []string) map[string]struct{} {
 }
 
 const (
+	RelayAutoProbeAll      = "all" // 自动盯该站全部分组（含任何新增），不限名称
 	RelayAutoProbeGPT      = "gpt"
 	RelayAutoProbeClaude   = "claude"
 	RelayAutoProbeGemini   = "gemini"
@@ -558,6 +579,7 @@ const (
 
 func normalizeRelayAutoProbeCategories(in []string) []string {
 	allowed := map[string]struct{}{
+		RelayAutoProbeAll: {},
 		RelayAutoProbeGPT: {}, RelayAutoProbeClaude: {}, RelayAutoProbeGemini: {},
 		RelayAutoProbeGrok: {}, RelayAutoProbeDomestic: {},
 	}
@@ -599,6 +621,8 @@ func relayGroupMatchesCategories(group string, categories []string) bool {
 	g := strings.ToLower(group)
 	for _, cat := range categories {
 		switch cat {
+		case RelayAutoProbeAll:
+			return true
 		case RelayAutoProbeGPT:
 			if strings.Contains(g, "gpt") || strings.Contains(g, "openai") || strings.Contains(g, "chatgpt") || strings.Contains(g, "codex") {
 				return true

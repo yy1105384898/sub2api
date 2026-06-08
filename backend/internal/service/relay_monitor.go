@@ -18,9 +18,10 @@ const (
 	RelaySystemSub2API = "sub2api"
 	RelaySystemNewAPI  = "newapi"
 
-	// RelayDirectionUp 倍率变大（涨），RelayDirectionDown 倍率变小（跌）。
+	// RelayDirectionUp 倍率变大（涨），RelayDirectionDown 倍率变小（跌），RelayDirectionNew 新增分组。
 	RelayDirectionUp   = "up"
 	RelayDirectionDown = "down"
+	RelayDirectionNew  = "new"
 
 	// relayMinIntervalSeconds / relayMaxIntervalSeconds 探测间隔上下限（与 schema Range 一致）。
 	relayMinIntervalSeconds = 60

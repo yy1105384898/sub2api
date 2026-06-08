@@ -1225,7 +1225,7 @@ var (
 		{Name: "group_name", Type: field.TypeString, Size: 200},
 		{Name: "old_rate", Type: field.TypeFloat64},
 		{Name: "new_rate", Type: field.TypeFloat64},
-		{Name: "direction", Type: field.TypeEnum, Enums: []string{"up", "down"}},
+		{Name: "direction", Type: field.TypeEnum, Enums: []string{"up", "down", "new"}},
 		{Name: "content", Type: field.TypeString, Nullable: true, Size: 500, Default: ""},
 		{Name: "detected_at", Type: field.TypeTime},
 		{Name: "monitor_id", Type: field.TypeInt64},

@@ -190,6 +190,7 @@
                       >{{ row.site }}</a>
                       <span class="rounded bg-indigo-50 px-1.5 py-0.5 text-[10px] text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300">{{ row.system }}</span>
                       <span v-if="row.removed" class="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-dark-600 dark:text-gray-300">{{ t('admin.relayMonitor.disabled') }}</span>
+                      <span v-else-if="row.direction === 'new'" class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{{ t('admin.relayMonitor.newGroup') }}</span>
                     </div>
                   </td>
                   <td class="max-w-[200px] truncate px-3 py-2.5" :title="t('admin.relayMonitor.viewHistory')">
@@ -204,8 +205,9 @@
                     </div>
                   </td>
                   <td class="px-3 py-2.5">
+                    <span v-if="row.has_change && row.direction === 'new'" class="font-medium text-blue-600 dark:text-blue-400">{{ t('admin.relayMonitor.newGroup') }}</span>
                     <span
-                      v-if="row.has_change"
+                      v-else-if="row.has_change"
                       class="font-medium"
                       :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'"
                     >
@@ -373,17 +375,19 @@
                 v-for="(row, idx) in filteredChanges"
                 :key="row.id"
                 class="border-b border-gray-100 last:border-0 dark:border-dark-700/60"
-                :class="row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10'"
+                :class="row.direction === 'new' ? 'bg-blue-50/40 dark:bg-blue-950/10' : (row.direction === 'up' ? 'bg-red-50/40 dark:bg-red-950/10' : 'bg-green-50/40 dark:bg-green-950/10')"
               >
                 <td class="px-4 py-3 text-gray-500">{{ (changesPage - 1) * changesPageSize + idx + 1 }}</td>
                 <td class="px-4 py-3">
                   <span
                     class="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium"
-                    :class="row.direction === 'up'
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                      : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'"
+                    :class="row.direction === 'new'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                      : (row.direction === 'up'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                        : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300')"
                   >
-                    {{ row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down') }}
+                    {{ row.direction === 'new' ? t('admin.relayMonitor.newGroup') : (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 font-medium">
@@ -404,8 +408,8 @@
                 </td>
                 <td class="px-4 py-3 text-gray-500">{{ formatRate(row.old_rate) }}</td>
                 <td class="px-4 py-3 text-gray-700 dark:text-gray-200">{{ formatRate(row.new_rate) }}</td>
-                <td class="px-4 py-3 font-medium" :class="row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'">
-                  {{ (row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate)) }}
+                <td class="px-4 py-3 font-medium" :class="row.direction === 'new' ? 'text-blue-600 dark:text-blue-400' : (row.direction === 'up' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400')">
+                  {{ row.direction === 'new' ? t('admin.relayMonitor.newGroup') : ((row.direction === 'up' ? t('admin.relayMonitor.up') : t('admin.relayMonitor.down')) + ' ' + formatRate(Math.abs(row.new_rate - row.old_rate))) }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-gray-500">{{ formatTime(row.detected_at) }}</td>
                 <td class="px-4 py-3 max-w-xs truncate text-gray-500" :title="row.content">{{ row.content }}</td>
@@ -789,6 +793,7 @@ function effectiveAuthAccount(): string {
 // 厂商下拉候选（datalist，仍可自定义输入）。
 const vendorOptions = ['OpenAI', 'Claude', 'Gemini', 'Grok', 'DeepSeek']
 const autoProbeOptions: { key: RelayAutoProbeCategory; label: string }[] = [
+  { key: 'all', label: t('admin.relayMonitor.autoProbeAll') },
   { key: 'gpt', label: 'GPT / OpenAI' },
   { key: 'claude', label: 'Claude' },
   { key: 'gemini', label: 'Gemini' },

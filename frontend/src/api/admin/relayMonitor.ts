@@ -7,8 +7,8 @@
 import { apiClient } from '../client'
 
 export type RelaySystem = 'sub2api' | 'newapi'
-export type RateDirection = 'up' | 'down'
-export type RelayAutoProbeCategory = 'gpt' | 'claude' | 'gemini' | 'grok' | 'domestic'
+export type RateDirection = 'up' | 'down' | 'new'
+export type RelayAutoProbeCategory = 'all' | 'gpt' | 'claude' | 'gemini' | 'grok' | 'domestic'
 
 export interface RelayMonitor {
   id: number

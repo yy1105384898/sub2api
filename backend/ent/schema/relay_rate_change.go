@@ -42,7 +42,7 @@ func (RelayRateChange) Fields() []ent.Field {
 		field.Float("old_rate"),
 		field.Float("new_rate"),
 		field.Enum("direction").
-			Values("up", "down").
+			Values("up", "down", "new").
 			Comment("up=涨(倍率变大), down=跌(倍率变小)"),
 		field.String("content").
 			Optional().

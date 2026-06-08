@@ -173,11 +173,36 @@ const handleFolderChange = (event: Event) => {
 const fileNameToAccountName = (fileName: string): string =>
   fileName.replace(/\.json$/i, '').trim()
 
-// 账号缺 name 时用文件名兜底填入。
-const fillAccountName = (acc: any, fallback: string): any => {
+const inferAccountPlatform = (acc: any): string => {
+  const platform = typeof acc?.platform === 'string' ? acc.platform.trim() : ''
+  if (platform) return platform
+  const text = JSON.stringify(acc || {}).toLowerCase()
+  if (text.includes('anthropic') || text.includes('claude')) return 'anthropic'
+  if (text.includes('gemini') || text.includes('google')) return 'gemini'
+  if (text.includes('antigravity')) return 'antigravity'
+  return 'openai'
+}
+
+const inferAccountType = (acc: any): string => {
+  const type = typeof acc?.type === 'string' ? acc.type.trim() : ''
+  if (type) return type
+  const credentials = acc?.credentials && typeof acc.credentials === 'object' ? acc.credentials : acc
+  if (credentials?.api_key || credentials?.apikey || credentials?.key || credentials?.token) return 'apikey'
+  return 'oauth'
+}
+
+// 账号缺 name/platform/type 时自动兜底，兼容单账号 JSON。
+const fillAccountDefaults = (acc: any, fallback: string): any => {
   if (acc && typeof acc === 'object' && !Array.isArray(acc)) {
     const name = typeof acc.name === 'string' ? acc.name.trim() : ''
-    if (!name) return { ...acc, name: fallback }
+    const next = { ...acc }
+    if (!name) next.name = fallback
+    if (!next.platform) next.platform = inferAccountPlatform(acc)
+    if (!next.type) next.type = inferAccountType(acc)
+    if (!next.credentials || typeof next.credentials !== 'object') next.credentials = { ...acc }
+    if (typeof next.concurrency !== 'number') next.concurrency = 1
+    if (typeof next.priority !== 'number') next.priority = 0
+    return next
   }
   return acc
 }
@@ -190,13 +215,13 @@ const normalizeToPayload = (parsed: any, fileName: string): AdminDataPayload => 
     const payload = parsed as AdminDataPayload
     const src = payload.accounts || []
     const accounts = src.map((acc, idx) =>
-      fillAccountName(acc, src.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
+      fillAccountDefaults(acc, src.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
     )
     return { ...payload, accounts } as AdminDataPayload
   }
   const rawAccounts = Array.isArray(parsed) ? parsed : [parsed]
   const accounts = rawAccounts.map((acc, idx) =>
-    fillAccountName(acc, rawAccounts.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
+    fillAccountDefaults(acc, rawAccounts.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
   )
   return { exported_at: new Date().toISOString(), proxies: [], accounts } as AdminDataPayload
 }

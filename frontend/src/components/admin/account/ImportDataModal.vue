@@ -23,33 +23,20 @@
         >
           <div class="min-w-0">
             <div class="truncate text-sm text-gray-700 dark:text-dark-200">
-              {{ filesLabel }}
+              {{ fileName || t('admin.accounts.dataImportSelectFile') }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-dark-400">{{ t('admin.accounts.dataImportMultiHint') }}</div>
+            <div class="text-xs text-gray-500 dark:text-dark-400">JSON (.json)</div>
           </div>
-          <div class="flex shrink-0 gap-2">
-            <button type="button" class="btn btn-secondary" @click="openFilePicker">
-              {{ t('admin.accounts.dataImportChooseFiles') }}
-            </button>
-            <button type="button" class="btn btn-secondary" @click="openFolderPicker">
-              {{ t('admin.accounts.dataImportChooseFolder') }}
-            </button>
-          </div>
+          <button type="button" class="btn btn-secondary shrink-0" @click="openFilePicker">
+            {{ t('common.chooseFile') }}
+          </button>
         </div>
         <input
           ref="fileInput"
           type="file"
           class="hidden"
           accept="application/json,.json"
-          multiple
           @change="handleFileChange"
-        />
-        <input
-          ref="folderInput"
-          type="file"
-          class="hidden"
-          multiple
-          @change="handleFolderChange"
         />
       </div>
 
@@ -103,7 +90,7 @@ import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import { adminAPI } from '@/api/admin'
 import { useAppStore } from '@/stores/app'
-import type { AdminDataImportResult, AdminDataPayload } from '@/types'
+import type { AdminDataImportResult } from '@/types'
 
 interface Props {
   show: boolean
@@ -121,30 +108,23 @@ const { t } = useI18n()
 const appStore = useAppStore()
 
 const importing = ref(false)
-const files = ref<File[]>([])
+const file = ref<File | null>(null)
 const result = ref<AdminDataImportResult | null>(null)
 
 const fileInput = ref<HTMLInputElement | null>(null)
-const folderInput = ref<HTMLInputElement | null>(null)
-const filesLabel = computed(() => {
-  if (!files.value.length) return t('admin.accounts.dataImportSelectFile')
-  if (files.value.length === 1) return files.value[0].name
-  return t('admin.accounts.dataImportFileCount', { count: files.value.length })
-})
+const fileName = computed(() => file.value?.name || '')
 
 const errorItems = computed(() => result.value?.errors || [])
-
-const onlyJSON = (list: FileList | null): File[] =>
-  Array.from(list || []).filter((f) => f.name.toLowerCase().endsWith('.json'))
 
 watch(
   () => props.show,
   (open) => {
     if (open) {
-      files.value = []
+      file.value = null
       result.value = null
-      if (fileInput.value) fileInput.value.value = ''
-      if (folderInput.value) folderInput.value.value = ''
+      if (fileInput.value) {
+        fileInput.value.value = ''
+      }
     }
   }
 )
@@ -153,77 +133,9 @@ const openFilePicker = () => {
   fileInput.value?.click()
 }
 
-const openFolderPicker = () => {
-  if (folderInput.value) {
-    // webkitdirectory 不是标准 TS 属性，运行时设置以让用户选整个文件夹。
-    folderInput.value.setAttribute('webkitdirectory', '')
-    folderInput.value.click()
-  }
-}
-
 const handleFileChange = (event: Event) => {
-  files.value = onlyJSON((event.target as HTMLInputElement).files)
-}
-
-const handleFolderChange = (event: Event) => {
-  files.value = onlyJSON((event.target as HTMLInputElement).files)
-}
-
-// 去掉文件名后缀，作为账号名兜底（很多单账号 JSON 文件名即账号邮箱/标识）。
-const fileNameToAccountName = (fileName: string): string =>
-  fileName.replace(/\.json$/i, '').trim()
-
-const inferAccountPlatform = (acc: any): string => {
-  const platform = typeof acc?.platform === 'string' ? acc.platform.trim() : ''
-  if (platform) return platform
-  const text = JSON.stringify(acc || {}).toLowerCase()
-  if (text.includes('anthropic') || text.includes('claude')) return 'anthropic'
-  if (text.includes('gemini') || text.includes('google')) return 'gemini'
-  if (text.includes('antigravity')) return 'antigravity'
-  return 'openai'
-}
-
-const inferAccountType = (acc: any): string => {
-  const type = typeof acc?.type === 'string' ? acc.type.trim() : ''
-  if (type) return type
-  const credentials = acc?.credentials && typeof acc.credentials === 'object' ? acc.credentials : acc
-  if (credentials?.api_key || credentials?.apikey || credentials?.key || credentials?.token) return 'apikey'
-  return 'oauth'
-}
-
-// 账号缺 name/platform/type 时自动兜底，兼容单账号 JSON。
-const fillAccountDefaults = (acc: any, fallback: string): any => {
-  if (acc && typeof acc === 'object' && !Array.isArray(acc)) {
-    const name = typeof acc.name === 'string' ? acc.name.trim() : ''
-    const next = { ...acc }
-    if (!name) next.name = fallback
-    if (!next.platform) next.platform = inferAccountPlatform(acc)
-    if (!next.type) next.type = inferAccountType(acc)
-    if (!next.credentials || typeof next.credentials !== 'object') next.credentials = { ...acc }
-    if (typeof next.concurrency !== 'number') next.concurrency = 1
-    if (typeof next.priority !== 'number') next.priority = 0
-    return next
-  }
-  return acc
-}
-
-// 把任意形态的 JSON 归一化为导入负载：整导出对象 / 账号数组 / 单账号对象。
-// fileName 用于在账号缺少 name 时兜底命名。
-const normalizeToPayload = (parsed: any, fileName: string): AdminDataPayload => {
-  const fallbackName = fileNameToAccountName(fileName)
-  if (parsed && typeof parsed === 'object' && Array.isArray(parsed.accounts)) {
-    const payload = parsed as AdminDataPayload
-    const src = payload.accounts || []
-    const accounts = src.map((acc, idx) =>
-      fillAccountDefaults(acc, src.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
-    )
-    return { ...payload, accounts } as AdminDataPayload
-  }
-  const rawAccounts = Array.isArray(parsed) ? parsed : [parsed]
-  const accounts = rawAccounts.map((acc, idx) =>
-    fillAccountDefaults(acc, rawAccounts.length > 1 ? `${fallbackName}-${idx + 1}` : fallbackName)
-  )
-  return { exported_at: new Date().toISOString(), proxies: [], accounts } as AdminDataPayload
+  const target = event.target as HTMLInputElement
+  file.value = target.files?.[0] || null
 }
 
 const handleClose = () => {
@@ -250,55 +162,41 @@ const readFileAsText = async (sourceFile: File): Promise<string> => {
 }
 
 const handleImport = async () => {
-  if (!files.value.length) {
+  if (!file.value) {
     appStore.showError(t('admin.accounts.dataImportSelectFile'))
     return
   }
 
   importing.value = true
-  const agg: AdminDataImportResult = {
-    proxy_created: 0, proxy_reused: 0, proxy_failed: 0,
-    account_created: 0, account_failed: 0, errors: [],
-  }
   try {
-    for (const f of files.value) {
-      try {
-        const parsed = JSON.parse(await readFileAsText(f))
-        const res = await adminAPI.accounts.importData({
-          data: normalizeToPayload(parsed, f.name),
-          skip_default_group_bind: true,
-        })
-        agg.proxy_created += res.proxy_created
-        agg.proxy_reused += res.proxy_reused
-        agg.proxy_failed += res.proxy_failed
-        agg.account_created += res.account_created
-        agg.account_failed += res.account_failed
-        for (const e of res.errors || []) {
-          agg.errors!.push({ ...e, name: `${f.name} · ${e.name || e.proxy_key || ''}` })
-        }
-      } catch (err: any) {
-        // 单个文件解析/导入失败不影响其余文件。
-        agg.account_failed += 1
-        agg.errors!.push({
-          kind: 'account',
-          name: f.name,
-          message: err instanceof SyntaxError ? t('admin.accounts.dataImportParseFailed') : (err?.message || t('admin.accounts.dataImportFailed')),
-        })
-      }
-    }
+    const text = await readFileAsText(file.value)
+    const dataPayload = JSON.parse(text)
 
-    result.value = agg
-    const msgParams = {
-      account_created: agg.account_created, account_failed: agg.account_failed,
-      proxy_created: agg.proxy_created, proxy_reused: agg.proxy_reused, proxy_failed: agg.proxy_failed,
+    const res = await adminAPI.accounts.importData({
+      data: dataPayload,
+      skip_default_group_bind: true
+    })
+
+    result.value = res
+
+    const msgParams: Record<string, unknown> = {
+      account_created: res.account_created,
+      account_failed: res.account_failed,
+      proxy_created: res.proxy_created,
+      proxy_reused: res.proxy_reused,
+      proxy_failed: res.proxy_failed,
     }
-    if (agg.account_failed > 0 || agg.proxy_failed > 0) {
+    if (res.account_failed > 0 || res.proxy_failed > 0) {
       appStore.showError(t('admin.accounts.dataImportCompletedWithErrors', msgParams))
     } else {
       appStore.showSuccess(t('admin.accounts.dataImportSuccess', msgParams))
-    }
-    if (agg.account_created > 0 || agg.proxy_created > 0) {
       emit('imported')
+    }
+  } catch (error: any) {
+    if (error instanceof SyntaxError) {
+      appStore.showError(t('admin.accounts.dataImportParseFailed'))
+    } else {
+      appStore.showError(error?.message || t('admin.accounts.dataImportFailed'))
     }
   } finally {
     importing.value = false

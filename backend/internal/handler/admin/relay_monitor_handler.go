@@ -396,7 +396,7 @@ func (h *RelayMonitorHandler) Changes(c *gin.Context) {
 		monitorID, _ = strconv.ParseInt(raw, 10, 64)
 	}
 	direction := strings.ToLower(strings.TrimSpace(c.Query("direction")))
-	if direction != service.RelayDirectionUp && direction != service.RelayDirectionDown {
+	if direction != service.RelayDirectionUp && direction != service.RelayDirectionDown && direction != service.RelayDirectionNew {
 		direction = ""
 	}
 	params := service.RelayRateChangeListParams{

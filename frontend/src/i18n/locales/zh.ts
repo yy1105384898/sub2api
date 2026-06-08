@@ -2843,6 +2843,7 @@ export default {
       allAnnouncements: '全部公告',
       onlyUp: '只看涨',
       onlyDown: '只看跌',
+      onlyNew: '只看新增',
       searchPlaceholder: '搜索站点 / 厂商 / 分组',
       allSites: '全部站点',
       allVendors: '全部厂商',

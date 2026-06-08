@@ -93,6 +93,7 @@
             <option value="">{{ t('admin.relayMonitor.allAnnouncements') }}</option>
             <option value="up">{{ t('admin.relayMonitor.onlyUp') }}</option>
             <option value="down">{{ t('admin.relayMonitor.onlyDown') }}</option>
+            <option value="new">{{ t('admin.relayMonitor.onlyNew') }}</option>
           </select>
           <p v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.relayMonitor.filterHint') }}</p>
           <div class="flex gap-2">

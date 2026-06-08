@@ -2766,6 +2766,7 @@ export default {
       allAnnouncements: 'All',
       onlyUp: 'Up only',
       onlyDown: 'Down only',
+      onlyNew: 'New only',
       searchPlaceholder: 'Search site / vendor / group',
       allSites: 'All Sites',
       allVendors: 'All Vendors',

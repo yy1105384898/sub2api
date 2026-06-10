@@ -802,8 +802,8 @@ const autoProbeOptions: { key: RelayAutoProbeCategory; label: string }[] = [
   { key: 'domestic', label: t('admin.relayMonitor.autoProbeDomestic') },
 ]
 
-// 套餐档位：按分组名关键字识别（覆盖 OpenAI/Claude/Gemini/Grok 各家）。
-// 顺序由具体到一般：team→enterprise→max→ultra→pro→plus→free。
+// 套餐档位：按分组名关键字识别（覆盖 OpenAI/Claude/Gemini/Grok/生图各家）。
+// 生图类单独归到 Image，避免落到 Other。
 interface PlanTier {
   key: string
   label: string
@@ -836,8 +836,17 @@ const PLAN_OTHER: PlanTier = {
   panelCls: 'bg-gray-50 dark:bg-dark-800/80',
   borderCls: 'border-gray-200 dark:border-dark-700',
 }
+const PLAN_IMAGE: PlanTier = {
+  key: 'image',
+  label: 'Image',
+  cls: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  panelCls: 'bg-pink-50/80 dark:bg-pink-950/20',
+  borderCls: 'border-pink-100 dark:border-pink-900/40',
+}
+
 function planTier(group: string): PlanTier {
   const g = (group || '').toLowerCase()
+  if (isImagePlan(g)) return PLAN_IMAGE
   if (g.includes('team')) return { key: 'team', label: 'Team', cls: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300', panelCls: 'bg-purple-50/80 dark:bg-purple-950/20', borderCls: 'border-purple-100 dark:border-purple-900/40' }
   if (g.includes('enterprise') || /\bent\b/.test(g)) return { key: 'enterprise', label: 'Enterprise', cls: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', panelCls: 'bg-slate-50 dark:bg-slate-900/30', borderCls: 'border-slate-200 dark:border-slate-700' }
   if (g.includes('max')) return { key: 'max', label: 'Max', cls: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300', panelCls: 'bg-orange-50/80 dark:bg-orange-950/20', borderCls: 'border-orange-100 dark:border-orange-900/40' }
@@ -846,6 +855,39 @@ function planTier(group: string): PlanTier {
   if (g.includes('plus')) return { key: 'plus', label: 'Plus', cls: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300', panelCls: 'bg-teal-50/80 dark:bg-teal-950/20', borderCls: 'border-teal-100 dark:border-teal-900/40' }
   if (g.includes('free')) return { key: 'free', label: 'Free', cls: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300', panelCls: 'bg-green-50/80 dark:bg-green-950/20', borderCls: 'border-green-100 dark:border-green-900/40' }
   return PLAN_OTHER
+}
+
+function isImagePlan(group: string): boolean {
+  return [
+    'image',
+    'images',
+    'img',
+    'draw',
+    'drawing',
+    'paint',
+    'picture',
+    'photo',
+    'vision-image',
+    'gpt-image',
+    'dall-e',
+    'dalle',
+    'sora-image',
+    'imagen',
+    'nano-banana',
+    'banana',
+    'flux',
+    'midjourney',
+    'mj',
+    'ideogram',
+    'recraft',
+    'seedream',
+    'jimeng',
+    '即梦',
+    '生图',
+    '绘图',
+    '画图',
+    '图片',
+  ].some((keyword) => group.includes(keyword))
 }
 
 // 每个站点一个色系：标题行用较深的 header 背景，分组行用同色系的浅 row 背景，
@@ -941,7 +983,7 @@ const overviewSites = computed<OverviewSite[]>(() => {
 
 // ---- 比价视图：按 厂商·套餐 聚合，组内站点按当前倍率升序 ----
 const PLAN_ORDER: Record<string, number> = {
-  free: 0, plus: 1, pro: 2, max: 3, team: 4, ultra: 5, enterprise: 6, other: 9,
+  free: 0, plus: 1, pro: 2, max: 3, team: 4, ultra: 5, enterprise: 6, image: 7, other: 9,
 }
 interface CompareGroup {
   key: string

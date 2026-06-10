@@ -32,6 +32,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/relaymonitor"
+	"github.com/Wei-Shaw/sub2api/ent/relayratechange"
+	"github.com/Wei-Shaw/sub2api/ent/relayratesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
 	"github.com/Wei-Shaw/sub2api/ent/subscriptionplan"
@@ -723,6 +726,87 @@ func (f TraverseRedeemCode) Traverse(ctx context.Context, q ent.Query) error {
 	return fmt.Errorf("unexpected query type %T. expect *ent.RedeemCodeQuery", q)
 }
 
+// The RelayMonitorFunc type is an adapter to allow the use of ordinary function as a Querier.
+type RelayMonitorFunc func(context.Context, *ent.RelayMonitorQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f RelayMonitorFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.RelayMonitorQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.RelayMonitorQuery", q)
+}
+
+// The TraverseRelayMonitor type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseRelayMonitor func(context.Context, *ent.RelayMonitorQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseRelayMonitor) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseRelayMonitor) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.RelayMonitorQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.RelayMonitorQuery", q)
+}
+
+// The RelayRateChangeFunc type is an adapter to allow the use of ordinary function as a Querier.
+type RelayRateChangeFunc func(context.Context, *ent.RelayRateChangeQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f RelayRateChangeFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.RelayRateChangeQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.RelayRateChangeQuery", q)
+}
+
+// The TraverseRelayRateChange type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseRelayRateChange func(context.Context, *ent.RelayRateChangeQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseRelayRateChange) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseRelayRateChange) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.RelayRateChangeQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.RelayRateChangeQuery", q)
+}
+
+// The RelayRateSnapshotFunc type is an adapter to allow the use of ordinary function as a Querier.
+type RelayRateSnapshotFunc func(context.Context, *ent.RelayRateSnapshotQuery) (ent.Value, error)
+
+// Query calls f(ctx, q).
+func (f RelayRateSnapshotFunc) Query(ctx context.Context, q ent.Query) (ent.Value, error) {
+	if q, ok := q.(*ent.RelayRateSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return nil, fmt.Errorf("unexpected query type %T. expect *ent.RelayRateSnapshotQuery", q)
+}
+
+// The TraverseRelayRateSnapshot type is an adapter to allow the use of ordinary function as Traverser.
+type TraverseRelayRateSnapshot func(context.Context, *ent.RelayRateSnapshotQuery) error
+
+// Intercept is a dummy implementation of Intercept that returns the next Querier in the pipeline.
+func (f TraverseRelayRateSnapshot) Intercept(next ent.Querier) ent.Querier {
+	return next
+}
+
+// Traverse calls f(ctx, q).
+func (f TraverseRelayRateSnapshot) Traverse(ctx context.Context, q ent.Query) error {
+	if q, ok := q.(*ent.RelayRateSnapshotQuery); ok {
+		return f(ctx, q)
+	}
+	return fmt.Errorf("unexpected query type %T. expect *ent.RelayRateSnapshotQuery", q)
+}
+
 // The SecuritySecretFunc type is an adapter to allow the use of ordinary function as a Querier.
 type SecuritySecretFunc func(context.Context, *ent.SecuritySecretQuery) (ent.Value, error)
 
@@ -1096,6 +1180,12 @@ func NewQuery(q ent.Query) (Query, error) {
 		return &query[*ent.ProxyQuery, predicate.Proxy, proxy.OrderOption]{typ: ent.TypeProxy, tq: q}, nil
 	case *ent.RedeemCodeQuery:
 		return &query[*ent.RedeemCodeQuery, predicate.RedeemCode, redeemcode.OrderOption]{typ: ent.TypeRedeemCode, tq: q}, nil
+	case *ent.RelayMonitorQuery:
+		return &query[*ent.RelayMonitorQuery, predicate.RelayMonitor, relaymonitor.OrderOption]{typ: ent.TypeRelayMonitor, tq: q}, nil
+	case *ent.RelayRateChangeQuery:
+		return &query[*ent.RelayRateChangeQuery, predicate.RelayRateChange, relayratechange.OrderOption]{typ: ent.TypeRelayRateChange, tq: q}, nil
+	case *ent.RelayRateSnapshotQuery:
+		return &query[*ent.RelayRateSnapshotQuery, predicate.RelayRateSnapshot, relayratesnapshot.OrderOption]{typ: ent.TypeRelayRateSnapshot, tq: q}, nil
 	case *ent.SecuritySecretQuery:
 		return &query[*ent.SecuritySecretQuery, predicate.SecuritySecret, securitysecret.OrderOption]{typ: ent.TypeSecuritySecret, tq: q}, nil
 	case *ent.SettingQuery:

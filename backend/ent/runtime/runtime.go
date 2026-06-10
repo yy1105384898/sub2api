@@ -28,6 +28,9 @@ import (
 	"github.com/Wei-Shaw/sub2api/ent/promocodeusage"
 	"github.com/Wei-Shaw/sub2api/ent/proxy"
 	"github.com/Wei-Shaw/sub2api/ent/redeemcode"
+	"github.com/Wei-Shaw/sub2api/ent/relaymonitor"
+	"github.com/Wei-Shaw/sub2api/ent/relayratechange"
+	"github.com/Wei-Shaw/sub2api/ent/relayratesnapshot"
 	"github.com/Wei-Shaw/sub2api/ent/schema"
 	"github.com/Wei-Shaw/sub2api/ent/securitysecret"
 	"github.com/Wei-Shaw/sub2api/ent/setting"
@@ -1416,6 +1419,161 @@ func init() {
 	redeemcodeDescValidityDays := redeemcodeFields[10].Descriptor()
 	// redeemcode.DefaultValidityDays holds the default value on creation for the validity_days field.
 	redeemcode.DefaultValidityDays = redeemcodeDescValidityDays.Default.(int)
+	relaymonitorMixin := schema.RelayMonitor{}.Mixin()
+	relaymonitorMixinFields0 := relaymonitorMixin[0].Fields()
+	_ = relaymonitorMixinFields0
+	relaymonitorFields := schema.RelayMonitor{}.Fields()
+	_ = relaymonitorFields
+	// relaymonitorDescCreatedAt is the schema descriptor for created_at field.
+	relaymonitorDescCreatedAt := relaymonitorMixinFields0[0].Descriptor()
+	// relaymonitor.DefaultCreatedAt holds the default value on creation for the created_at field.
+	relaymonitor.DefaultCreatedAt = relaymonitorDescCreatedAt.Default.(func() time.Time)
+	// relaymonitorDescUpdatedAt is the schema descriptor for updated_at field.
+	relaymonitorDescUpdatedAt := relaymonitorMixinFields0[1].Descriptor()
+	// relaymonitor.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	relaymonitor.DefaultUpdatedAt = relaymonitorDescUpdatedAt.Default.(func() time.Time)
+	// relaymonitor.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	relaymonitor.UpdateDefaultUpdatedAt = relaymonitorDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// relaymonitorDescName is the schema descriptor for name field.
+	relaymonitorDescName := relaymonitorFields[0].Descriptor()
+	// relaymonitor.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	relaymonitor.NameValidator = func() func(string) error {
+		validators := relaymonitorDescName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(name string) error {
+			for _, fn := range fns {
+				if err := fn(name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// relaymonitorDescBaseURL is the schema descriptor for base_url field.
+	relaymonitorDescBaseURL := relaymonitorFields[2].Descriptor()
+	// relaymonitor.BaseURLValidator is a validator for the "base_url" field. It is called by the builders before save.
+	relaymonitor.BaseURLValidator = func() func(string) error {
+		validators := relaymonitorDescBaseURL.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(base_url string) error {
+			for _, fn := range fns {
+				if err := fn(base_url); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// relaymonitorDescVendor is the schema descriptor for vendor field.
+	relaymonitorDescVendor := relaymonitorFields[3].Descriptor()
+	// relaymonitor.DefaultVendor holds the default value on creation for the vendor field.
+	relaymonitor.DefaultVendor = relaymonitorDescVendor.Default.(string)
+	// relaymonitor.VendorValidator is a validator for the "vendor" field. It is called by the builders before save.
+	relaymonitor.VendorValidator = relaymonitorDescVendor.Validators[0].(func(string) error)
+	// relaymonitorDescAuthAccount is the schema descriptor for auth_account field.
+	relaymonitorDescAuthAccount := relaymonitorFields[4].Descriptor()
+	// relaymonitor.DefaultAuthAccount holds the default value on creation for the auth_account field.
+	relaymonitor.DefaultAuthAccount = relaymonitorDescAuthAccount.Default.(string)
+	// relaymonitor.AuthAccountValidator is a validator for the "auth_account" field. It is called by the builders before save.
+	relaymonitor.AuthAccountValidator = relaymonitorDescAuthAccount.Validators[0].(func(string) error)
+	// relaymonitorDescCredentialEncrypted is the schema descriptor for credential_encrypted field.
+	relaymonitorDescCredentialEncrypted := relaymonitorFields[5].Descriptor()
+	// relaymonitor.DefaultCredentialEncrypted holds the default value on creation for the credential_encrypted field.
+	relaymonitor.DefaultCredentialEncrypted = relaymonitorDescCredentialEncrypted.Default.(string)
+	// relaymonitorDescWatchedGroups is the schema descriptor for watched_groups field.
+	relaymonitorDescWatchedGroups := relaymonitorFields[6].Descriptor()
+	// relaymonitor.DefaultWatchedGroups holds the default value on creation for the watched_groups field.
+	relaymonitor.DefaultWatchedGroups = relaymonitorDescWatchedGroups.Default.([]string)
+	// relaymonitorDescEnabled is the schema descriptor for enabled field.
+	relaymonitorDescEnabled := relaymonitorFields[7].Descriptor()
+	// relaymonitor.DefaultEnabled holds the default value on creation for the enabled field.
+	relaymonitor.DefaultEnabled = relaymonitorDescEnabled.Default.(bool)
+	// relaymonitorDescIntervalSeconds is the schema descriptor for interval_seconds field.
+	relaymonitorDescIntervalSeconds := relaymonitorFields[8].Descriptor()
+	// relaymonitor.DefaultIntervalSeconds holds the default value on creation for the interval_seconds field.
+	relaymonitor.DefaultIntervalSeconds = relaymonitorDescIntervalSeconds.Default.(int)
+	// relaymonitor.IntervalSecondsValidator is a validator for the "interval_seconds" field. It is called by the builders before save.
+	relaymonitor.IntervalSecondsValidator = relaymonitorDescIntervalSeconds.Validators[0].(func(int) error)
+	// relaymonitorDescLastError is the schema descriptor for last_error field.
+	relaymonitorDescLastError := relaymonitorFields[10].Descriptor()
+	// relaymonitor.DefaultLastError holds the default value on creation for the last_error field.
+	relaymonitor.DefaultLastError = relaymonitorDescLastError.Default.(string)
+	// relaymonitor.LastErrorValidator is a validator for the "last_error" field. It is called by the builders before save.
+	relaymonitor.LastErrorValidator = relaymonitorDescLastError.Validators[0].(func(string) error)
+	relayratechangeFields := schema.RelayRateChange{}.Fields()
+	_ = relayratechangeFields
+	// relayratechangeDescSite is the schema descriptor for site field.
+	relayratechangeDescSite := relayratechangeFields[1].Descriptor()
+	// relayratechange.SiteValidator is a validator for the "site" field. It is called by the builders before save.
+	relayratechange.SiteValidator = relayratechangeDescSite.Validators[0].(func(string) error)
+	// relayratechangeDescSystem is the schema descriptor for system field.
+	relayratechangeDescSystem := relayratechangeFields[2].Descriptor()
+	// relayratechange.SystemValidator is a validator for the "system" field. It is called by the builders before save.
+	relayratechange.SystemValidator = relayratechangeDescSystem.Validators[0].(func(string) error)
+	// relayratechangeDescVendor is the schema descriptor for vendor field.
+	relayratechangeDescVendor := relayratechangeFields[3].Descriptor()
+	// relayratechange.DefaultVendor holds the default value on creation for the vendor field.
+	relayratechange.DefaultVendor = relayratechangeDescVendor.Default.(string)
+	// relayratechange.VendorValidator is a validator for the "vendor" field. It is called by the builders before save.
+	relayratechange.VendorValidator = relayratechangeDescVendor.Validators[0].(func(string) error)
+	// relayratechangeDescGroupName is the schema descriptor for group_name field.
+	relayratechangeDescGroupName := relayratechangeFields[4].Descriptor()
+	// relayratechange.GroupNameValidator is a validator for the "group_name" field. It is called by the builders before save.
+	relayratechange.GroupNameValidator = func() func(string) error {
+		validators := relayratechangeDescGroupName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(group_name string) error {
+			for _, fn := range fns {
+				if err := fn(group_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// relayratechangeDescContent is the schema descriptor for content field.
+	relayratechangeDescContent := relayratechangeFields[8].Descriptor()
+	// relayratechange.DefaultContent holds the default value on creation for the content field.
+	relayratechange.DefaultContent = relayratechangeDescContent.Default.(string)
+	// relayratechange.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	relayratechange.ContentValidator = relayratechangeDescContent.Validators[0].(func(string) error)
+	// relayratechangeDescDetectedAt is the schema descriptor for detected_at field.
+	relayratechangeDescDetectedAt := relayratechangeFields[9].Descriptor()
+	// relayratechange.DefaultDetectedAt holds the default value on creation for the detected_at field.
+	relayratechange.DefaultDetectedAt = relayratechangeDescDetectedAt.Default.(func() time.Time)
+	relayratesnapshotFields := schema.RelayRateSnapshot{}.Fields()
+	_ = relayratesnapshotFields
+	// relayratesnapshotDescGroupName is the schema descriptor for group_name field.
+	relayratesnapshotDescGroupName := relayratesnapshotFields[1].Descriptor()
+	// relayratesnapshot.GroupNameValidator is a validator for the "group_name" field. It is called by the builders before save.
+	relayratesnapshot.GroupNameValidator = func() func(string) error {
+		validators := relayratesnapshotDescGroupName.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(group_name string) error {
+			for _, fn := range fns {
+				if err := fn(group_name); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// relayratesnapshotDescUpdatedAt is the schema descriptor for updated_at field.
+	relayratesnapshotDescUpdatedAt := relayratesnapshotFields[3].Descriptor()
+	// relayratesnapshot.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	relayratesnapshot.DefaultUpdatedAt = relayratesnapshotDescUpdatedAt.Default.(func() time.Time)
 	securitysecretMixin := schema.SecuritySecret{}.Mixin()
 	securitysecretMixinFields0 := securitysecretMixin[0].Fields()
 	_ = securitysecretMixinFields0

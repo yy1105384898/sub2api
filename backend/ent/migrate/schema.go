@@ -1203,6 +1203,116 @@ var (
 			},
 		},
 	}
+	// RelayMonitorsColumns holds the columns for the "relay_monitors" table.
+	RelayMonitorsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "created_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "updated_at", Type: field.TypeTime, SchemaType: map[string]string{"postgres": "timestamptz"}},
+		{Name: "name", Type: field.TypeString, Size: 100},
+		{Name: "system", Type: field.TypeEnum, Enums: []string{"sub2api", "newapi"}},
+		{Name: "base_url", Type: field.TypeString, Size: 500},
+		{Name: "vendor", Type: field.TypeString, Nullable: true, Size: 50, Default: ""},
+		{Name: "auth_account", Type: field.TypeString, Nullable: true, Size: 200, Default: ""},
+		{Name: "credential_encrypted", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "watched_groups", Type: field.TypeJSON},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "interval_seconds", Type: field.TypeInt, Default: 300},
+		{Name: "last_checked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "last_error", Type: field.TypeString, Nullable: true, Size: 500, Default: ""},
+		{Name: "created_by", Type: field.TypeInt64},
+	}
+	// RelayMonitorsTable holds the schema information for the "relay_monitors" table.
+	RelayMonitorsTable = &schema.Table{
+		Name:       "relay_monitors",
+		Columns:    RelayMonitorsColumns,
+		PrimaryKey: []*schema.Column{RelayMonitorsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "relaymonitor_enabled_last_checked_at",
+				Unique:  false,
+				Columns: []*schema.Column{RelayMonitorsColumns[10], RelayMonitorsColumns[12]},
+			},
+			{
+				Name:    "relaymonitor_system",
+				Unique:  false,
+				Columns: []*schema.Column{RelayMonitorsColumns[4]},
+			},
+		},
+	}
+	// RelayRateChangesColumns holds the columns for the "relay_rate_changes" table.
+	RelayRateChangesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "site", Type: field.TypeString, Size: 100},
+		{Name: "system", Type: field.TypeString, Size: 20},
+		{Name: "vendor", Type: field.TypeString, Nullable: true, Size: 50, Default: ""},
+		{Name: "group_name", Type: field.TypeString, Size: 200},
+		{Name: "old_rate", Type: field.TypeFloat64},
+		{Name: "new_rate", Type: field.TypeFloat64},
+		{Name: "direction", Type: field.TypeEnum, Enums: []string{"up", "down", "new"}},
+		{Name: "content", Type: field.TypeString, Nullable: true, Size: 500, Default: ""},
+		{Name: "detected_at", Type: field.TypeTime},
+		{Name: "monitor_id", Type: field.TypeInt64},
+	}
+	// RelayRateChangesTable holds the schema information for the "relay_rate_changes" table.
+	RelayRateChangesTable = &schema.Table{
+		Name:       "relay_rate_changes",
+		Columns:    RelayRateChangesColumns,
+		PrimaryKey: []*schema.Column{RelayRateChangesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "relay_rate_changes_relay_monitors_changes",
+				Columns:    []*schema.Column{RelayRateChangesColumns[10]},
+				RefColumns: []*schema.Column{RelayMonitorsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "relayratechange_monitor_id_detected_at",
+				Unique:  false,
+				Columns: []*schema.Column{RelayRateChangesColumns[10], RelayRateChangesColumns[9]},
+			},
+			{
+				Name:    "relayratechange_direction_detected_at",
+				Unique:  false,
+				Columns: []*schema.Column{RelayRateChangesColumns[7], RelayRateChangesColumns[9]},
+			},
+			{
+				Name:    "relayratechange_detected_at",
+				Unique:  false,
+				Columns: []*schema.Column{RelayRateChangesColumns[9]},
+			},
+		},
+	}
+	// RelayRateSnapshotsColumns holds the columns for the "relay_rate_snapshots" table.
+	RelayRateSnapshotsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "group_name", Type: field.TypeString, Size: 200},
+		{Name: "rate", Type: field.TypeFloat64},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "monitor_id", Type: field.TypeInt64},
+	}
+	// RelayRateSnapshotsTable holds the schema information for the "relay_rate_snapshots" table.
+	RelayRateSnapshotsTable = &schema.Table{
+		Name:       "relay_rate_snapshots",
+		Columns:    RelayRateSnapshotsColumns,
+		PrimaryKey: []*schema.Column{RelayRateSnapshotsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "relay_rate_snapshots_relay_monitors_snapshots",
+				Columns:    []*schema.Column{RelayRateSnapshotsColumns[4]},
+				RefColumns: []*schema.Column{RelayMonitorsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "relayratesnapshot_monitor_id_group_name",
+				Unique:  true,
+				Columns: []*schema.Column{RelayRateSnapshotsColumns[4], RelayRateSnapshotsColumns[1]},
+			},
+		},
+	}
 	// SecuritySecretsColumns holds the columns for the "security_secrets" table.
 	SecuritySecretsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1797,6 +1907,9 @@ var (
 		PromoCodeUsagesTable,
 		ProxiesTable,
 		RedeemCodesTable,
+		RelayMonitorsTable,
+		RelayRateChangesTable,
+		RelayRateSnapshotsTable,
 		SecuritySecretsTable,
 		SettingsTable,
 		SubscriptionPlansTable,
@@ -1902,6 +2015,17 @@ func init() {
 	RedeemCodesTable.ForeignKeys[1].RefTable = UsersTable
 	RedeemCodesTable.Annotation = &entsql.Annotation{
 		Table: "redeem_codes",
+	}
+	RelayMonitorsTable.Annotation = &entsql.Annotation{
+		Table: "relay_monitors",
+	}
+	RelayRateChangesTable.ForeignKeys[0].RefTable = RelayMonitorsTable
+	RelayRateChangesTable.Annotation = &entsql.Annotation{
+		Table: "relay_rate_changes",
+	}
+	RelayRateSnapshotsTable.ForeignKeys[0].RefTable = RelayMonitorsTable
+	RelayRateSnapshotsTable.Annotation = &entsql.Annotation{
+		Table: "relay_rate_snapshots",
 	}
 	SecuritySecretsTable.Annotation = &entsql.Annotation{
 		Table: "security_secrets",

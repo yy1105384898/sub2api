@@ -454,6 +454,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/channels/relay-monitor',
+    name: 'AdminRelayMonitor',
+    component: () => import('@/views/admin/RelayMonitorView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Relay Monitor',
+      titleKey: 'admin.relayMonitor.title',
+      descriptionKey: 'admin.relayMonitor.description'
+    }
+  },
+  {
     path: '/monitor',
     name: 'ChannelStatus',
     component: () => import('@/views/user/ChannelStatusView.vue'),

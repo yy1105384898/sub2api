@@ -592,6 +592,8 @@ var ProviderSet = wire.NewSet(
 	ProvideBalanceNotifyService,
 	ProvideChannelMonitorService,
 	ProvideChannelMonitorRunner,
+	ProvideRelayMonitorService,
+	ProvideRelayMonitorRunner,
 	NewChannelMonitorRequestTemplateService,
 	ProvideUserPlatformQuotaUsageFlusher,
 )
@@ -646,6 +648,25 @@ func ProvideChannelMonitorService(
 // settingService 用于 runner 每次 fire 读取功能开关。
 func ProvideChannelMonitorRunner(svc *ChannelMonitorService, settingService *SettingService) *ChannelMonitorRunner {
 	r := NewChannelMonitorRunner(svc, settingService)
+	svc.SetScheduler(r)
+	r.Start()
+	return r
+}
+
+// ProvideRelayMonitorService 创建中转站监控服务（CRUD + 探测 + 倍率变化历史）。
+// 加密器复用 wire 中已注入的 SecretEncryptor（AES-256-GCM）。
+func ProvideRelayMonitorService(
+	repo RelayMonitorRepository,
+	encryptor SecretEncryptor,
+) *RelayMonitorService {
+	return NewRelayMonitorService(repo, encryptor)
+}
+
+// ProvideRelayMonitorRunner 创建并启动中转站监控调度器。
+// 通过 SetScheduler 注入回 service 后再 Start，确保启动时加载所有 enabled 监控，
+// 后续 CRUD 也能即时同步任务表。Runner.Stop 由 cleanup function 调用。
+func ProvideRelayMonitorRunner(svc *RelayMonitorService) *RelayMonitorRunner {
+	r := NewRelayMonitorRunner(svc)
 	svc.SetScheduler(r)
 	r.Start()
 	return r
